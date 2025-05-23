@@ -1,0 +1,19 @@
+@import "tailwindcss";
+
+@layer base {
+    .button {
+        @apply cursor-pointer bg-black/40 border-white/0 border-2 px-4 py-2 rounded-xl backdrop-blur-md text-white font-bold hover:not-disabled:brightness-125 hover:not-disabled:border-white duration-200 disabled:cursor-not-allowed disabled:text-neutral-400;
+    }
+
+    .input {
+        @apply bg-black/40 border-white/0 border-2 px-4 py-1 rounded-xl backdrop-blur-md text-white disabled:cursor-not-allowed disabled:text-neutral-400;
+    }
+
+    * {
+        @apply accent-pink-500;
+    }
+
+    td, th {
+        @apply px-1.5 py-0.5 border-neutral-400 border-1 border-dotted;
+    }
+}

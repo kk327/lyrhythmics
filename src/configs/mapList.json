@@ -1,0 +1,84 @@
+{
+    "maps": [
+        {
+            "name": "GoodPixels - Livin' Dreams",
+            "codeName": "livinDreams",
+            "wpm": 64,
+            "length": 147,
+            "lyriclessLength": 53,
+            "commercialAllowed": false
+        },
+        {
+            "name": "Cloudier - Lapse",
+            "codeName": "lapse",
+            "wpm": 62,
+            "length": 306,
+            "lyriclessLength": 88,
+            "commercialAllowed": false
+        },
+        {
+            "name": "StopItBahis - WHAT U SAY ISNT",
+            "codeName": "whatUSayIsnt",
+            "wpm": 96,
+            "length": 95,
+            "lyriclessLength": 5,
+            "commercialAllowed": false
+        },
+        {
+            "name": "Zoolsepicmusic - You're Not Alone",
+            "codeName": "youreNotAlone",
+            "wpm": 32,
+            "length": 179,
+            "lyriclessLength": 32,
+            "commercialAllowed": true
+        },
+        {
+            "name": "StopItBahis - SILVER HEARTZ",
+            "codeName": "silverHeartz",
+            "wpm": 122,
+            "length": 200,
+            "lyriclessLength": 0,
+            "commercialAllowed": false
+        },
+        {
+            "name": "Matt$ - Always (ft. m1nute)",
+            "codeName": "always",
+            "wpm": 99,
+            "length": 134,
+            "lyriclessLength": 23,
+            "commercialAllowed": false
+        },
+        {
+            "name": "MilkMan-Dan - An Angel Falls",
+            "codeName": "anAngelFalls",
+            "wpm": 45,
+            "length": 208,
+            "lyriclessLength": 54,
+            "commercialAllowed": true
+        },
+        {
+            "name": "Perfect Shade - Reaching High",
+            "codeName": "reachingHigh",
+            "wpm": 54,
+            "length": 192,
+            "lyriclessLength": 16,
+            "commercialAllowed": true
+        },
+        {
+            "name": "Matt$ - Cool Breeze",
+            "codeName": "coolBreeze",
+            "wpm": 102,
+            "length": 182,
+            "lyriclessLength": 62,
+            "commercialAllowed": false
+        },
+        {
+            "name": "SchattenDnB - Leaves",
+            "codeName": "leaves",
+            "wpm": 72,
+            "length": 69,
+            "lyriclessLength": 13,
+            "commercialAllowed": true
+        }
+    ]
+}

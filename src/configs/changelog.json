@@ -1,0 +1,9 @@
+{ 
+    "releases": [{
+        "version": "1.0.0",
+        "date": "May 23rd, 2025",
+        "changes": [
+            "Initial release."
+        ]
+    }]
+}
