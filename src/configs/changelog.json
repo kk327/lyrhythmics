@@ -1,5 +1,14 @@
 { 
     "releases": [{
+        "version": "1.0.1",
+        "date": "May 23rd, 2025",
+        "changes": [
+            "Fixed a typo on the about page. Hovewer -> However",
+            "Fixed text not being centered in the changelog if there's more than one version.",
+            "The version in the corner of the main menu is now loaded from the changelog.json file."
+        ]
+    },
+    {
         "version": "1.0.0",
         "date": "May 23rd, 2025",
         "changes": [

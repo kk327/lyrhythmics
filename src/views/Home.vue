@@ -633,7 +633,7 @@
 
             <h2 class="text-xl font-bold my-1.5">Score system</h2>
             <p class="max-w-275">
-                The full score for a perfect word is 1, for a word with a typo it's 0.25, and for a wrong word it's 0. Hovewer that is later reduced by the timing. If you start typing during the word and finish before it passes, you get the entirety of that score. If you start typing a word early, that is before the earlier word passed, you get 75% of that score. Although only when the even earlier word has passed, but if that isn't the case, then that's starting typing a word very early, which gives even less score. You can also finish a word late, by the time the next word passes. In both of the cases you get 1/3 of the score. The score that you see is the percentage of how much score you got out of how much was possible to get. When a word passes, the input's color changes. Green is correct, yellow is typo, red is wrong. The brightest shade means perfectly on time, the darker shade is started typing early, and the darkest shade is finished late or started typing very early. Red doesn't have shades. If it's hard for you to differentiate between the colors, you can enable the "Additional word correctness feedback" setting which shows a text indicator on the right side of the input. V is correct, ~ means typo, X is wrong. v means very early, e means early, and l means late. A typo is when you either missed a letter, added an additional letter, typed one wrong letter, or swapped the places of two letters that are next to eachother. It also has to be on a word that has at least 3 characters. Examples on the word score: scre, scoire, sxore, scoer.
+                The full score for a perfect word is 1, for a word with a typo it's 0.25, and for a wrong word it's 0. However that is later reduced by the timing. If you start typing during the word and finish before it passes, you get the entirety of that score. If you start typing a word early, that is before the earlier word passed, you get 75% of that score. Although only when the even earlier word has passed, but if that isn't the case, then that's starting typing a word very early, which gives even less score. You can also finish a word late, by the time the next word passes. In both of the cases you get 1/3 of the score. The score that you see is the percentage of how much score you got out of how much was possible to get. When a word passes, the input's color changes. Green is correct, yellow is typo, red is wrong. The brightest shade means perfectly on time, the darker shade is started typing early, and the darkest shade is finished late or started typing very early. Red doesn't have shades. If it's hard for you to differentiate between the colors, you can enable the "Additional word correctness feedback" setting which shows a text indicator on the right side of the input. V is correct, ~ means typo, X is wrong. v means very early, e means early, and l means late. A typo is when you either missed a letter, added an additional letter, typed one wrong letter, or swapped the places of two letters that are next to eachother. It also has to be on a word that has at least 3 characters. Examples on the word score: scre, scoire, sxore, scoer.
             </p>
 
             <h2 class="text-xl font-bold my-1.5">Song list</h2>
@@ -663,7 +663,7 @@
 
         <section 
             v-else-if="visibleOverlay == 'changelog'"
-            class="flex flex-col items-center max-h-full w-full py-2 overflow-y-auto z-13"
+            class="flex flex-col items-center max-h-full w-full py-2 overflow-y-auto z-13 text-center"
         >
             <PinkHeader text="Changelog" />
 
@@ -741,7 +741,7 @@
             title="See the changelog."
             :tabindex="tabindex"
             @click="visibleOverlay = 'changelog'"
-        >v1.0.0</button>
+        >v{{ releases[0].version }}</button>
     </footer>
 
     <section v-if="!settings.disableBackgroundLyrics">
