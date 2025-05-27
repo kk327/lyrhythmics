@@ -149,8 +149,8 @@
         class="mt-2"
     >{{ songStatus }}</p>
 
-    <section class="flex gap-3 items-center mt-2">
-        <section 
+    <div class="flex gap-3 items-center mt-2">
+        <div 
             class="flex flex-col items-center font-bold has-disabled:text-neutral-400 has-disabled:cursor-not-allowed"
             :title="!songDuration ? 'Add a song first.' : ''"
         >
@@ -166,7 +166,7 @@
                 :tabindex="tabindex"
                 @input="playSong()"
             >
-        </section>
+        </div>
 
         <button
             class="button"
@@ -175,7 +175,7 @@
             :title="!songDuration ? 'Add a song first.' : ''"
             @click="playingSong ? stopSong() : playSong()"
         >{{ playingSong ? 'Stop song' : 'Play song' }}</button>
-    </section>
+    </div>
 
     <h2 class="font-bold text-xl mt-4 mb-2">Background image:</h2>
     <label>

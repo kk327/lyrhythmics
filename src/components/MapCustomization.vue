@@ -20,6 +20,15 @@
 
     const skipLyricless = ref((localStorage.getItem("skipLyricless") && props.data.partsWithoutLyrics.length && !props.pausedVariant) || (props.pausedVariant && props.data.skipLyricless) ? true : false);
     const startTime = ref(props.pausedVariant ? props.data.startTime : 0);
+
+    const wordLengthLimit = ref(props.pausedVariant ? 
+                                    props.data.wordLengthLimit 
+                                    : localStorage.getItem("defaultWordLengthLimit") ?
+                                        (localStorage.getItem("defaultWordLengthLimit") < Math.max( ...props.data.lyrics.map(e => Math.max( ...e.map(e2 => e2.word.length ))) ) ?
+                                            localStorage.getItem("defaultWordLengthLimit")
+                                            : Math.max( ...props.data.lyrics.map(e => Math.max( ...e.map(e2 => e2.word.length ))) ) - 1)
+                                        : 0);
+
     const speed = ref(props.pausedVariant ? 
                         props.data.speed
                         : localStorage.getItem("defaultSpeed") ? 
@@ -64,7 +73,7 @@
     let enterHeld = false;
 
     watchEffect(() => {
-        highscore.value = localStorage.getItem(props.data.id + "-" + speed.value + "-" + startTime.value + "-" + skipLyricless.value + "-" + lyricsSettingList.map((e) => lyricsSettings.value[e] ? '1' : '0').join(""));
+        highscore.value = localStorage.getItem(props.data.id + "-" + speed.value + "-" + startTime.value + "-" + skipLyricless.value + "-" + lyricsSettingList.map((e) => lyricsSettings.value[e] ? '1' : '0').join("") + (wordLengthLimit.value ? "-wll" + wordLengthLimit.value : ""));
     });
 
     const mapLength = computed(() => {
@@ -120,7 +129,8 @@
                     speed: speed.value,
                     startTime: startTime.value,
                     skipLyricless: skipLyricless.value,
-                    lyricsSettings: lyricsSettings.value };
+                    lyricsSettings: lyricsSettings.value,
+                    wordLengthLimit: wordLengthLimit };
     }
 
     function redirectAndSetData(link, data) {
@@ -130,9 +140,9 @@
 </script>
 
 <template>
-    <section class="fixed w-screen h-screen bg-black/50 z-9 backdrop-blur-xs"></section>
-    <section class="fixed w-screen h-screen z-10 flex justify-center items-center text-white">   
-        <section class="flex flex-col items-center max-h-full w-full py-2 overflow-y-auto">
+    <div class="fixed w-screen h-screen bg-black/50 z-9 backdrop-blur-xs"></div>
+    <div class="fixed w-screen h-screen z-10 flex justify-center items-center text-white">   
+        <div class="flex flex-col items-center max-h-full w-full py-2 overflow-y-auto">
             <h1
                 v-if="pausedVariant"
                 class="font-bold text-2xl mb-2 tracking-wider"
@@ -140,13 +150,13 @@
             
             <PinkHeader :text="data.name ? data.name : 'Unnamed map'" />
 
-            <section class="flex gap-6">
+            <div class="flex gap-6">
                 <p>Mapped by: {{ data.mapper ? data.mapper : "unknown" }}</p>
-                <p>Length: {{ (mapLength >= 60 ? Math.floor(mapLength / 60) + "m " : "") + (mapLength % 60 != 0 ? Math.round(mapLength % 60) + "s" : "") }}</p>
+                <p>Length: {{ mapLength ? (mapLength >= 60 ? Math.floor(mapLength / 60) + "m " : "") + (mapLength % 60 != 0 ? Math.round(mapLength % 60) + "s" : "") : "0s" }}</p>
                 <p>WPM: {{ Math.round(data.lyrics.reduce((sum, e) => sum + e.length, 0) / (mapLength - timeWithoutLyrics) * 60) }}</p>
-            </section>
+            </div>
 
-            <section 
+            <div 
                 v-if="!pausedVariant"
                 class="flex gap-3 mt-2.5 items-center"
             >
@@ -170,9 +180,9 @@
                 >
                     Cancel
                 </button>
-            </section>
+            </div>
 
-            <section 
+            <div 
                 v-else
                 class="flex gap-3 mt-2.5 items-center"
             >
@@ -197,7 +207,7 @@
                 >
                     Restart
                 </button>
-            </section>
+            </div>
 
             <p
                 v-if="highscore"
@@ -224,11 +234,11 @@
                 <h2 class="font-bold text-xl mt-4 mb-2">Start time:</h2>
                 <input 
                     class="input min-w-27.5"
-                    min="0"
-                    :max="Math.round((mapLength - 0.1) * 100) / 100"
                     type="number"
+                    min="0"
+                    :max="Math.round((mapLength - 0.1) * 100) / 100 > 0 ? Math.round((mapLength - 0.1) * 100) / 100 : 0"
                     v-model="startTime"
-                    @change="(e) => startTime > Math.round((mapLength - 0.1) * 100) / 100 ? startTime = Math.round((mapLength - 0.1) * 100) / 100 : e.target.value < 0 || isNaN(parseFloat(e.target.value)) ? startTime = 0 : {}"
+                    @change="(e) => startTime > Math.round((mapLength - 0.1) * 100) / 100 ? startTime = (Math.round((mapLength - 0.1) * 100) / 100 > 0 ? Math.round((mapLength - 0.1) * 100) / 100 : 0) : e.target.value < 0 || isNaN(parseFloat(e.target.value)) ? startTime = 0 : {}"
                 >
             </label>
             
@@ -238,6 +248,19 @@
                 :lyrics="data.lyrics"
                 @settingChanged="(name, value) => lyricsSettings[name] = value"
             />
+
+            <label class="text-center">
+                <h2 class="font-bold text-xl mt-4">Word length limit:</h2>
+                <p class="mb-2">(0 means no limit)</p>
+                <input 
+                    class="input min-w-27.5"
+                    type="number"
+                    min="0"
+                    :max="Math.max( ...data.lyrics.map(e => Math.max( ...e.map(e2 => e2.word.length ))) ) - 1"
+                    v-model="wordLengthLimit"
+                    @change="(e) => wordLengthLimit > Math.max( ...data.lyrics.map(e => Math.max( ...e.map(e2 => e2.word.length ))) ) - 1 ? wordLengthLimit = Math.max( ...data.lyrics.map(e => Math.max( ...e.map(e2 => e2.word.length ))) ) - 1 : e.target.value < 0 || isNaN(parseFloat(e.target.value)) ? wordLengthLimit = 0 : {}"
+                >
+            </label>
 
             <label 
                 v-if="timeWithoutLyrics && !data.forceskip"
@@ -262,6 +285,6 @@
                 v-else-if="data.forceskip"
                 class="mt-4"
             >This map skips {{ data.partsWithoutLyrics.length == 1 ? 'a part' : 'parts' }} of the song. Time-wise, {{ (timeWithoutLyrics >= 60 ? Math.floor(timeWithoutLyrics / 60) + "m " : "") + (timeWithoutLyrics % 60 != 0 ? Math.round(timeWithoutLyrics % 60) + "s" : "") }} of it.</p>
-        </section>
-    </section>
+        </div>
+    </div>
 </template>

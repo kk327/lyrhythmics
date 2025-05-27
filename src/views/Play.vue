@@ -15,7 +15,7 @@
 
     const router = useRouter();
 
-    const lyrics = ref(props.data.lyrics.map((e) => e.map((e2) => { return props.data.lyricsSettings.capitalization ? e2 : { word: e2.word.toLowerCase(), delay: e2.delay }}).map((e2) => { return props.data.lyricsSettings.accentLetters ? e2 : { word: e2.word.normalize("NFKD").replace(/\p{Diacritic}/gu, ""), delay: e2.delay } }).map((e2) => { return props.data.lyricsSettings.specialCharacters ? e2 : { word: e2.word.replace(/\P{Letter}/gu, ""), delay: e2.delay } }).filter((e2) => e2.word)).filter((e) => e.length));
+    const lyrics = ref(props.data.lyrics.map((e) => e.map((e2) => { return props.data.lyricsSettings.capitalization ? e2 : { word: e2.word.toLowerCase(), delay: e2.delay }}).map((e2) => { return props.data.lyricsSettings.accentLetters ? e2 : { word: e2.word.normalize("NFKD").replace(/\p{Diacritic}/gu, ""), delay: e2.delay } }).map((e2) => { return props.data.lyricsSettings.specialCharacters ? e2 : { word: e2.word.replace(/\P{Letter}/gu, ""), delay: e2.delay } }).filter((e2) => e2.word).map((e2) => props.data.wordLengthLimit ? { ...e2, word: e2.word.slice(0, props.data.wordLengthLimit) } : e2 )).filter((e) => e.length));
     const finished = ref(false);
     const finalScore = ref(0);
 
@@ -95,7 +95,7 @@
 
     const lyricsSettingList = ["capitalization", "accentLetters", "specialCharacters"];
     const saveHighscores = ref(localStorage.getItem("saveHighscores"));
-    const highscoreKey = props.data.id + "-" + speed.value + "-" + startTime.value + "-" + props.data.skipLyricless + "-" + lyricsSettingList.map((e) => props.data.lyricsSettings[e] ? '1' : '0').join("");
+    const highscoreKey = props.data.id + "-" + speed.value + "-" + startTime.value + "-" + props.data.skipLyricless + "-" + lyricsSettingList.map((e) => props.data.lyricsSettings[e] ? '1' : '0').join("") + (props.data.wordLengthLimit ? "-wll" + props.data.wordLengthLimit : "");
     const highscore = ref(localStorage.getItem(highscoreKey) ? localStorage.getItem(highscoreKey) : -1);
 
     const startWord = lyrics.value.filter((e, idx) => idx < lyricsId.value).reduce((sum, e) => sum + e.length, 0) + checkedWord.value;
@@ -358,7 +358,7 @@
         } else if (!paused.value) {
             if (e.key == " " && Object.keys(inputs).map((key) => inputs[key]).findIndex((e) => e == document.activeElement) != Object.keys(inputs).length - 1) {
                 inputs[Object.keys(inputs).map((key) => inputs[key]).findIndex((e) => e == document.activeElement) + 1].focus();
-            } else if (props.data.automap) {
+            } else if (props.data.automapSongSkipping) {
                 if (e.key == "Shift") {
                     shiftHeld = true;
                 } else if (shiftHeld && e.key == "ArrowLeft") {
@@ -372,7 +372,7 @@
     }
 
     function playingKeyup(e) {
-        if (props.data.automap && e.key == "Shift") {
+        if (props.data.automapSongSkipping && e.key == "Shift") {
             shiftHeld = false;
         }
     }
@@ -434,12 +434,12 @@
         class="flex flex-col items-end min-h-screen text-white"
         :style="{ height: windowHeight + calculateTop(lyrics[lyrics.length - 1][lyrics[lyrics.length - 1].length - 1].delay) + 20 + 'px' }"
     >
-        <section 
+        <div 
             class="fixed h-screen w-screen select-none font-bold text-3xl bg-neutral-900 flex justify-center items-center"
             :style="{ color: `rgb(${imageStateColor}, ${imageStateColor}, ${imageStateColor})` }"
         >
             <p v-if="imageStateColor != 0">{{ imageState }}</p>
-        </section>
+        </div>
         <img
             class="fixed h-screen w-screen object-cover select-none text-black text-[0px]" 
             :style="{ filter: 'hue-rotate(' + currentHue + 'deg) brightness(' + currentBrightness / 100 + ')' }"
@@ -449,11 +449,11 @@
             @error="imageLoadFailed()"
         >
 
-        <section 
+        <div 
             v-if="!isInsideLyricless()"
             class="flex z-1 backdrop-blur-md fixed"
         >
-            <section 
+            <div 
                 class="flex items-center justify-end"
                 v-for="lyric, idx in lyrics[lyricsId]"
             >
@@ -474,23 +474,23 @@
                 >
                     {{ correctnessStates[idx] }}
                 </p>
-            </section>
-        </section>
+            </div>
+        </div>
 
-        <section
+        <div
             v-else-if="time == startTime / speed"
             class="fixed top-1.5 w-full flex justify-center"
         >
             <p class="bg-black/40 px-4 py-1.25 rounded-xl backdrop-blur-md max-w-[calc(100vw-375px)] text-center">
                 Press any key to start. {{ (startTime == 0 ? "The map starts with a " + (props.data.partsWithoutLyrics.length && props.data.partsWithoutLyrics[0].start == 0 ? Math.round(data.partsWithoutLyrics[0].end / speed) + " second" + (Math.round(props.data.partsWithoutLyrics[0].end / speed) == 1 ? "" : "s") + " long" : "short") + " lyricless part." : "You started in a " + (data.partsWithoutLyrics.filter((e) => e.start <= time && e.end > time).length ? "lyricless part. It ends in " + Math.round(data.partsWithoutLyrics.filter((e) => e.start <= time && e.end > time)[0].end / speed - time) + " second" + (Math.round(data.partsWithoutLyrics.filter((e) => e.start <= time && e.end > time)[0].end / speed - time) == 1 ? "" : "s") + "." : "short lyricless part.")) + (data.skipLyricless || data.forceskip ? " It wasn't marked as a lyricless part, so it wasn't skipped." : "") }}
             </p>
-        </section>
+        </div>
 
-        <section 
+        <div 
             v-for="verse in visibleLyrics"
             class="flex"
         >
-            <section 
+            <div 
                 v-for="lyric in verse" 
                 :style="{ width: calculateInputWidth(verse.length) }"
             >
@@ -503,10 +503,10 @@
                         {{ lyric.word }}
                     </span>
                 </p>
-            </section>
-        </section>
+            </div>
+        </div>
         
-        <section 
+        <div 
             class="bg-black/40 mr-5 px-4 py-2 rounded-xl flex items-center flex-col z-1 backdrop-blur-md fixed"
             :style="{ top: data.playtesting ? 
                             '64px'
@@ -520,10 +520,10 @@
                             : Math.round(score / (lyrics.filter((e, idx) => idx < lyricsId).reduce((sum, e) => sum + e.length, 0) + checkedWord - startWord) * 100) + "%" }}
             </h1>
             <p>{{ nonDecimalCurrentTime ? Math.round(time) : (Math.round(time * 100) / 100).toFixed(2) }}s / {{ Math.round(lyrics[lyrics.length - 1][lyrics[lyrics.length - 1].length - 1].delay / speed * 100) / 100 }}s</p>
-            <p v-if="data.automap">Song: {{ (Math.round(songPosition * 100) / 100).toFixed(2) }}s</p>
-        </section>
+            <p v-if="data.automapSongSkipping">Song: {{ (Math.round(songPosition * 100) / 100).toFixed(2) }}s</p>
+        </div>
 
-        <section 
+        <div 
             v-if="paused"
             class="fixed left-0 z-9 w-screen h-screen flex justify-center items-center text-white"
         >
@@ -533,14 +533,14 @@
                 @continue="paused = false"
                 @setData="(data) => $emit('setData', data)"
             />
-        </section>
+        </div>
 
-        <section
+        <div
             v-if="finished"
             class="fixed left-0 w-screen h-screen flex justify-center items-center text-white z-10 text-center"
         >
-            <section class="fixed w-screen h-screen bg-black/50 backdrop-blur-xs"></section> 
-            <section class="flex flex-col items-center max-h-full w-full py-2 overflow-y-auto z-11">
+            <div class="fixed w-screen h-screen bg-black/50 backdrop-blur-xs"></div> 
+            <div class="flex flex-col items-center max-h-full w-full py-2 overflow-y-auto z-11">
                 <PinkHeader 
                     :text="'Score: ' + (finalScore == -1 ? '??' : finalScore) + '%'" 
                 />
@@ -602,7 +602,7 @@
                     class="max-w-150 mt-2"
                 >You have saving highscores disabled, you can enable it by pressing the button below. The highscores will be saved in your device's local storage.</p>
 
-                <section class="flex gap-3 mt-2.5 items-center">
+                <div class="flex gap-3 mt-2.5 items-center">
                     <button
                         class="button h-fit"
                         @click="quit()"
@@ -624,8 +624,8 @@
                     >
                         Play again
                     </button>
-                </section>
-            </section>
-        </section>
+                </div>
+            </div>
+        </div>
     </main>
 </template>

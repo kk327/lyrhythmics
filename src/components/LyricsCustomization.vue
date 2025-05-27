@@ -50,7 +50,7 @@
         class="cursor-pointer has-disabled:cursor-not-allowed has-disabled:text-neutral-400"
         :title="variant == 'editor' && !setting.allowed ? 'No lyrics contain ' + setting.displayName.toLowerCase() + '.' : ''"
     >
-        <section v-if="variant != 'mapCustomization' || setting.allowed">
+        <div v-if="variant != 'mapCustomization' || setting.allowed">
             <input 
                 class="mr-1 cursor-pointer disabled:cursor-not-allowed"
                 type="checkbox"
@@ -60,6 +60,6 @@
                 @change="(e) => $emit('settingChanged', setting.codeName, settings[setting.codeName])"
             >
             {{ setting.displayName }}
-        </section>
+        </div>
     </label>
 </template>

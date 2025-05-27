@@ -1,5 +1,6 @@
 {
     "platform": "",
     "commercial": false,
-    "preloadMaps": false
-} 
+    "preloadMaps": false,
+    "enableFullscreenButton": false
+}

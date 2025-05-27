@@ -20,7 +20,7 @@
 
 <template>
     <h2 class="font-bold text-xl mt-4 mb-2">{{ gamewide ? 'Default speed' : 'Speed' }}:</h2>
-    <section class="cursor-hover bg-black/40 gap-1 flex rounded-xl backdrop-blur-md">
+    <div class="cursor-hover bg-black/40 gap-1 flex rounded-xl backdrop-blur-md">
         <button
             v-for="speedValue of [0.25, 0.375, 0.5, 0.75, 0.875, 1, 1.125, 1.25, 1.5, 1.75, 2]"
             class="cursor-pointer px-3 py-1 rounded-xl border-2 border-white/0 font-bold hover:brightness-125 hover:border-white duration-200"
@@ -28,7 +28,7 @@
             :tabindex="tabindex"
             @click="speed = speedValue"
         >{{ speedValue }}</button>
-    </section>
+    </div>
     <label>
         Custom:
         <input 

@@ -53,6 +53,7 @@
 
     const platform = config.platform; // used for special text on Newgrounds and itch.io
     const commercial = config.commercial; // removes songs with a license that forbids commercial use. Forbidding commercial use might be forbidding one of the freedoms of free software. Note that it only removes the non-commercially licensed songs from the song list though, and doesn't remove them from the game files.
+    const enableFullscreenButton = config.enableFullscreenButton; // adds a fullscreen button to the main menu
 
     let preloadedMaps = [];
     if (config.preloadMaps) {
@@ -120,7 +121,8 @@
     
     const numberSettings = [
         { name: "defaultSpeed", default: 1 },
-        { name: "targetFPS", default: 60 }
+        { name: "targetFPS", default: 60 },
+        { name: "defaultWordLengthLimit", default: 0 }
     ];
 
     const settings = reactive({});
@@ -188,6 +190,7 @@
         clearInterval(timeInterval);
     });
 
+
     function askForFile() {
         const fileInput = document.createElement("input");
         fileInput.type = "file";
@@ -224,10 +227,10 @@
                 }
             };
 
-            if (e.target.files[0].name.slice(e.target.files[0].name.length - 5) == ".json") {
+            if (e.target.files[0].name.match(/\.json$/)) {
                 reader.readAsText(e.target.files[0]);
             } else {
-                fileLoadError.value = "The file is not a JSON one.";
+                fileLoadError.value = "This is not a JSON file.";
             }
         })
     }
@@ -240,14 +243,6 @@
         return visibleOverlay.value || Object.keys(data.value).length != 0 || Object.keys(selectedMapData.value).length != 0 || fileLoadError.value ? -1 : 0;
     })
 
-    function onResize() {
-        sizeRefresh.value = !sizeRefresh.value;
-        setTimeout(() => {
-            stopSongSample();
-        }, 0);
-    }
-    addEventListener("resize", onResize);    
-
     function calculateInputWidth(verseLength) { 
         sizeRefresh.value;
         return window.innerWidth / verseLength + "px";
@@ -257,6 +252,14 @@
         sizeRefresh.value;
         return window.innerHeight * delay / 3.5;
     }
+    
+    function onResize() {
+        sizeRefresh.value = !sizeRefresh.value;
+        setTimeout(() => {
+            stopSongSample();
+        }, 0);
+    }
+    addEventListener("resize", onResize);    
 
     function onKeydown(e) {
         if (e.key == "Escape" && menu.value == "songList" && Object.keys(selectedMapData.value).length == 0 && !visibleOverlay.value && !fileLoadError.value) {
@@ -351,16 +354,20 @@
             song.value.pause();
         }
     }
+
+    function enterFullscreen() {
+        document.documentElement.requestFullscreen();
+    }
 </script>   
 
 <template>
-    <section class="absolute left-0 top-0 z-5">
-        <section class="relative right-4 bottom-2 bg-pink-500 font-bold text-5xl text-white [text-shadow:0.1em_0.06em_var(--color-violet-900)] skew-x-[-20deg] border-white border-4 border-l-0">
-            <section class="border-violet-900 border-4 border-l-0 py-4 pr-8 pl-10">
+    <div class="absolute left-0 top-0 z-5">
+        <div class="relative right-4 bottom-2 bg-pink-500 font-bold text-5xl text-white [text-shadow:0.1em_0.06em_var(--color-violet-900)] skew-x-[-20deg] border-white border-4 border-l-0">
+            <div class="border-violet-900 border-4 border-l-0 py-4 pr-8 pl-10">
                 <p class="skew-x-5">Lyrhythmics</p>
-            </section>
-        </section>
-    </section>
+            </div>
+        </div>
+    </div>
 
     <!-- background image -->
     <img
@@ -387,7 +394,7 @@
         draggable="false"
     >
 
-    <section 
+    <div 
         v-if="menu == 'main'"
         class="fixed w-screen h-screen flex justify-end items-center z-3"
     >
@@ -431,9 +438,9 @@
                 @click="visibleOverlay = 'about'"
             />
         </nav>
-    </section>
+    </div>
 
-    <section 
+    <div 
         v-else
         class="fixed w-screen h-screen flex items-center z-3"
     >
@@ -457,13 +464,13 @@
                 :tabindex="tabindex"
                 @click="menu = 'main'"
             >
-                <section 
+                <div 
                     class="cursor-pointer relative bg-white font-bold text-3xl text-violet-900 skew-x-[-20deg] border-white border-3 border-r-0 group hover:scale-[1.33] right-0 hover:right-[20%] hover:my-5 duration-300 z-1"
                 >
-                    <section class="border-violet-900 border-3 border-r-0 py-1.75 pr-32 pl-6">
+                    <div class="border-violet-900 border-3 border-r-0 py-1.75 pr-32 pl-6">
                         <p class="skew-x-5">Back</p>
-                    </section>
-                </section>
+                    </div>
+                </div>
             </button>
         </nav>
 
@@ -473,19 +480,14 @@
                 class="cursor-pointer text-pink-300 hover:text-pink-500 duration-100"
                 :tabindex="tabindex"
                 @click="visibleOverlay = 'automap'"
-            >automap feature</button> or the 
-            <button
-                class="cursor-pointer text-pink-300 hover:text-pink-500 duration-100"
-                :tabindex="tabindex"
-                @click="router.push('/editor')"
-            >map editor</button>. If you want a song to be added to this list, check the 
+            >automap feature</button>. If you want a song to be added to this list, check the 
             <button
                 class="cursor-pointer text-pink-300 hover:text-pink-500 duration-100"
                 :tabindex="tabindex"
                 @click="visibleOverlay = 'about'"
-            >about page</button> for information. More songs coming soon!{{ commercial ? ' You\'re playing a version of this game without songs that forbid commercial use, the regular version has more songs.' : '' }}
+            >about page</button> for information. More officially mapped songs coming soon!{{ commercial ? ' You\'re playing a version of this game without songs that forbid commercial use, the regular version has more songs.' : '' }}
         </p>
-    </section>
+    </div>
 
     <!-- from file -->
     <MapCustomization 
@@ -504,13 +506,13 @@
     />
 
     <!-- automap, settings, about, changelog, mobile warning, loading map, file load errors -->
-    <section
+    <div
         v-if="visibleOverlay || fileLoadError"
         class="fixed left-0 w-screen h-screen flex justify-center items-center text-white z-12"
     >   
-        <section class="fixed w-screen h-screen bg-black/50 backdrop-blur-xs"></section> 
+        <div class="fixed w-screen h-screen bg-black/50 backdrop-blur-xs"></div> 
 
-        <section 
+        <div 
             v-if="visibleOverlay == 'automap'"
             class="flex flex-col items-center max-h-full w-full py-2 overflow-y-auto z-13"
         >
@@ -520,9 +522,9 @@
                 @cancel="closeAutomap()"
                 @setData="(newData) => automapSetData(newData)"
             />
-        </section>
+        </div>
 
-        <section 
+        <div 
             v-else-if="visibleOverlay == 'settings'"
             class="flex flex-col items-center max-h-full w-full py-2 overflow-y-auto z-13 text-center"
         >
@@ -545,6 +547,20 @@
                 :lyrics="[]"
                 @settingChanged="(name, value) => settings[name] = value"
             />
+
+            <label class="flex flex-col items-center">
+                <h2 class="font-bold text-xl mt-4">Default word length limit:</h2>
+                <p class="mb-2">(0 means no limit)</p>
+                <input 
+                    class="input"
+                    type="number"
+                    min="0"
+                    max="25"
+                    v-model="settings.defaultWordLengthLimit"
+                    :tabindex="highscoreResetWarning ? -1 : 0"
+                    @change="(e) => e.target.value > 25 ? settings.defaultWordLengthLimit = 25 : e.target.value < 0 || isNaN(parseFloat(e.target.value)) ? settings.defaultWordLengthLimit = 0 : settings.defaultWordLengthLimit = Math.round(e.target.value)"
+                >
+            </label>
 
             <label 
                 v-for="setting in booleanSettings.filter(e => e.displayName && (Object.keys(preloadedMaps).length ? e.codeName != 'disableCaching' : true))"
@@ -592,20 +608,20 @@
                 @click="visibleOverlay = ''"
             >Done</button>
 
-            <section
+            <div
                 v-if="highscoreResetWarning"
                 class="fixed left-0 top-0 w-screen h-screen flex justify-center items-center text-white z-14"
             >   
-                <section class="fixed w-screen h-screen bg-black/66 backdrop-blur-xs"></section>
+                <div class="fixed w-screen h-screen bg-black/66 backdrop-blur-xs"></div>
                 
-                <section class="flex flex-col items-center max-h-full w-full py-2 overflow-y-auto z-13 text-center"> 
+                <div class="flex flex-col items-center max-h-full w-full py-2 overflow-y-auto z-13 text-center"> 
                     <h2 class="font-bold text-lg z-15">Warning!</h2>
                     <p class="z-15">
                         Disabling saving highscores will remove the highscores that you saved since you enabled it.
                         <br>Are you sure you want to remove them and disable saving highscores?
                     </p>
 
-                    <section class="flex gap-3">
+                    <div class="flex gap-3">
                         <button
                             class="button mt-2.5"
                             @click="highscoreResetWarning = ''"
@@ -615,12 +631,12 @@
                             class="button mt-2.5"
                             @click="removeHighscores()"
                         >Confirm</button>
-                    </section>
-                </section>
-            </section>
-        </section>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-        <section 
+        <div 
             v-else-if="visibleOverlay == 'about'"
             class="flex flex-col items-center max-h-full w-full py-2 overflow-y-auto text-center z-13"
         >
@@ -628,7 +644,7 @@
 
             <h2 class="text-xl font-bold mb-1.5">Introduction</h2>
             <p class="max-w-275">
-                Lyrythmics is a game in which you type the lyrics of songs. It's made by k327, and it's free and open source software. On this page I will describe some aspects of the game that should be explained. First, for fast navigation there usually are keyboard shortcuts, either escape, enter or control + enter.
+                Lyrythmics is a game in which you type the lyrics of songs. It's made by k327, and it's free and open source software. On this page I will describe some aspects of the game that should be explained. First, for fast navigation there usually are keyboard shortcuts, either escape, enter or control + enter. {{ enableFullscreenButton ? " Although note that on most browsers pressing escape will also make you leave fullscreen if you're in fullscreen mode, and you will have to press escape again after that." : "" }}
             </p>
 
             <h2 class="text-xl font-bold my-1.5">Score system</h2>
@@ -647,21 +663,21 @@
 
             <h2 class="text-xl font-bold my-1.5">Automap</h2>
             <p class="max-w-275">
-                Automap lets you bring a song file, and maps the song for you. Just input the lyrics, the song, and optionally other settings. In some cases browsers might get stuck at loading the song, in that case go back to the main menu, then again to automap and try again. Although if the song has parts that are just music without lyrics, make sure to add them to parts without lyrics. How it works is simple, it just spreads the lyrics in even distances through the entire song, except of the parts without lyrics. The distances are even through one part with lyrics, so the distance between words can be slightly different between the parts seperated by parts without lyrics. Before a part without lyrics there's free time that lasts half the length of a word. In addition to that, the parts without lyrics are actually 1 second shorter than you typed them on each side, to provide a transition. These two seconds don't have any lyrics, and are there only in automap, so not in the proper map editor. As automap just places the lyrics evenly without syncing them to the song, in case it gets really desynced it's your job to sync it. The shift + arrows song skipping is there for that. If you want a map that's synced, you can use the map editor, which of course requires more effort.
+                In addition to this description, there's some information on the automap page itself. Automap lets you bring a .srt, .vtt or .lrc file, or simply text lyrics, as well as a song file and turns it into a map for you. Just input the lyrics file or text lyrics, the song, and optionally other settings. In some cases browsers might get stuck at loading the song, in that case go back to the main menu, then again to automap and try again. If you input text lyrics and the song has parts that are just music without lyrics, make sure to add them to parts without lyrics. If you load the lyrics from a file, the verse delays are loaded from the file. Specific word delays are spread evenly through the verse, the first word is after the average duration of a word in that verse and not at the start time. If you input text lyrics, it spreads the lyrics in even distances through the entire song, except of the parts without lyrics. The distances are even through one part with lyrics, so the distance between words can be slightly different between the parts seperated by parts without lyrics. Before a part without lyrics there's free time that lasts half the length of a word. In addition to that, the parts without lyrics are actually 1 second shorter than you typed them on each side, to provide a transition. These two seconds don't have any lyrics, and are only there in automap with text lyrics, so not in the proper map editor and not in automap with a lyrics file. As automap without a lyrics file just places the lyrics evenly without syncing them to the song, in case it gets really desynced it's your job to sync it. The shift + arrows song skipping is there for that. Of course if you upload a lyrics file that's not the case, but the lyrics offset can still be different and if it is then you have to set it, more information about that in the automap menu. If you want a map that's perfectly synced, you can use the map editor.
             </p>
 
             <h2 class="text-xl font-bold my-1.5">Map editor</h2>
             <p class="max-w-275">
-                The map editor allows you to create proper maps. First, like in automap, add the song. After that, if the song has parts without lyrics, add them. In some cases browsers might get stuck at loading the song, in that case reopen the settings and try again. Then add the lyrics. While adding the lyrics you can use the delays based on the song length feature, which will spread the lyrics in even distances just like automap does it. You can also add individual verses later on if necessary. You can also change other settings, most of them are self-explainatory. Editor settings are the ones that don't affect the exported version of the map, meaning they only apply in the editor including playtesting. One harder setting could be background filters, it allows you to make the background change its color and brightness as the song moves on. You can use the for testing part to try different values. For hue rotate the regular range is 0-360 but you can go beyond that for more advanced transition management, in that case the colors just loop, so for example 480 is the same as 120. Although minus values work like substracting from 360 and then the looping, so for example -90 = 270. There's also brightness which uses percentange. In the main view you can use the play song feature to see the sync of the lyrics in real time, and then adjust the lyrics. You can drag words to move them, stretch them using the element at the center of the border and move entire verses with the element at the left. You can hold shift while moving a verse to also move all the verses below the one you're moving. If you want to change the order of verses, you have to use the buttons at the right to switch the places of two verses. The exact time of the word is at the top of the bubble with it. It's meant to be when the word is finished being sang, or a bit before it. You can also switch to viewing background filters instead of lyrics to stretch and sync them to the song better. To do that click the BG Filters button, and to go back to lyrics click the button again. You can quickly add a new background filter by pressing the N key while in that view. You can playtest the level, and when it's finished - export it. If you're not done but have to go, you can export it, load it in the main menu later and select edit.
+                The map editor allows you to properly create maps. First, like in automap, add the song. After that, if the song has parts without lyrics, add them. In some cases browsers might get stuck at loading the song, in that case reopen the settings and try again. Then add the lyrics. While adding the lyrics you can use the delays based on the song length feature, which will spread the lyrics in even distances just like automap does it. You can also load a .srt, .vtt or .lrc file, you can find more information about them on the automap page from the main menu. You can also add individual verses later on if necessary. You can also change other settings, most of them are self-explainatory. Editor settings are the ones that don't affect the exported version of the map, meaning they only apply in the editor including playtesting. One harder setting could be background filters, it allows you to make the background change its color and brightness as the song moves on. You can use the for testing part to try different values. For hue rotate the regular range is 0-360 but you can go beyond that for more advanced transition management, in that case the colors just loop, so for example 480 is the same as 120. Although minus values work like substracting from 360 and then the looping, so for example -90 = 270. There's also brightness which uses percentange. In the main view you can use the play song feature to see the sync of the lyrics in real time, and then adjust the lyrics. You can drag words to move them, stretch them using the element at the center of the border and move entire verses with the element at the left. You can hold shift while moving a verse to also move all the verses below the one you're moving. If you want to change the order of verses, you have to use the buttons at the right to switch the places of two verses. The exact time of the word is at the top of the bubble with it. It's meant to be when the word is finished being sang, or a bit before it. You can also switch to viewing background filters instead of lyrics to stretch and sync them to the song better. To do that click the BG Filters button, and to go back to lyrics click the button again. You can quickly add a new background filter by pressing the N key while in that view. You can playtest the level, and when it's finished - export it. If you're not done but have to go, you can export it, load it in the main menu later and select edit.
             </p>
 
             <button
                 class="button mt-3"
                 @click="visibleOverlay = ''"
             >Okay</button>
-        </section>
+        </div>
 
-        <section 
+        <div 
             v-else-if="visibleOverlay == 'changelog'"
             class="flex flex-col items-center max-h-full w-full py-2 overflow-y-auto z-13 text-center"
         >
@@ -680,9 +696,9 @@
                 class="button"
                 @click="visibleOverlay = ''"
             >Okay</button>
-        </section>
+        </div>
 
-        <section 
+        <div 
             v-else-if="visibleOverlay == 'mobileWarning'"
             class="flex flex-col items-center max-h-full w-full py-2 overflow-y-auto z-13"
         >
@@ -696,9 +712,9 @@
                 class="button"
                 @click="acceptMobileWarning()"
             >Okay</button>
-        </section>
+        </div>
 
-        <section 
+        <div 
             v-else-if="visibleOverlay == 'loadingMap'"
             class="flex flex-col items-center max-h-full w-full py-2 overflow-y-auto z-13"
         >
@@ -708,9 +724,9 @@
                 class="button"
                 @click="cancelMapDownload()"
             >Cancel</button>
-        </section>
+        </div>
 
-        <section 
+        <div 
             v-else-if="fileLoadError"
             class="flex flex-col items-center max-h-full w-full py-2 overflow-y-auto z-13"
         >
@@ -720,8 +736,8 @@
                 class="button mt-2.5"
                 @click="fileLoadError = ''"
             >Okay</button>
-        </section>
-    </section>
+        </div>
+    </div>
 
     <footer class="fixed text-neutral-400 bottom-2 right-2 bg-black/40 py-1 px-2 rounded-xl backdrop-blur-md flex gap-1.5 z-5 font-bold">
         <a 
@@ -744,12 +760,20 @@
         >v{{ releases[0].version }}</button>
     </footer>
 
-    <section v-if="!settings.disableBackgroundLyrics">
-        <section 
+    <button
+        v-if="enableFullscreenButton && menu == 'main'"
+        class="fixed bottom-2 left-2 bg-black/40 py-1 px-2 rounded-xl backdrop-blur-md z-5 font-bold cursor-pointer text-white hover:text-pink-300 duration-100"
+        @click="enterFullscreen()"
+    >
+        Enter fullscreen
+    </button>
+
+    <div v-if="!settings.disableBackgroundLyrics && !tabindex">
+        <div 
             v-for="verse in visibleLyrics"
             class="flex"
         >
-            <section 
+            <div 
                 v-for="lyric in verse" 
                 :style="{ width: calculateInputWidth(verse.length) }"
             >
@@ -762,7 +786,7 @@
                         {{ lyric.word }}
                     </span>
                 </p>
-            </section>
-        </section>
-    </section>
+            </div>
+        </div>
+    </div>
 </template>

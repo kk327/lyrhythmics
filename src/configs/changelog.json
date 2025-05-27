@@ -1,5 +1,23 @@
 { 
     "releases": [{
+        "version": "1.1.0",
+        "date": "May 27th, 2025",
+        "changes": [
+            "Added .srt, .vtt and .lrc file support. They can be uploaded in automap and in the map editor.",
+            "Added the word length limit setting. It allows you to limit the amount of letters in each word.",
+            "The main menu background lyrics are now only visible if no menu is open.",
+            "Updated the text on the automap page, in the automap and editor sections of the about page, as well as in the corner of the song list.",
+            "Changed the error message for trying to upload a non-JSON file to load map.",
+            "Replaced the text that says \"Ok\" on a button in the add lyrics menu in the editor with \"Add\".",
+            "Added an optional fullscreen button to the menu that's enabled in the Newgrounds version.",
+            "Made it so the playtest button is disabled if your scroll position is after the end of the lyrics.",
+            "When opening the map editor by creating a new map, the speed is now set to the value of the default speed setting instead of 1.",
+            "Fixed the hover title on the add lyrics button that says \"Input the lyrics first.\" not being there if you input just spaces or enters.",
+            "Fixed negative start time upper limit when the map is shorter than 0.1 seconds and length not being displayed if the map is 0 seconds long.",
+            "Improved the code a bit, most notably replaced sections with divs."
+        ]
+    },
+    {
         "version": "1.0.1",
         "date": "May 23rd, 2025",
         "changes": [

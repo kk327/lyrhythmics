@@ -23,7 +23,7 @@
 </script>
 
 <template>
-    <section class="flex flex-wrap items-center justify-center max-w-150 gap-3 mt-1.5">
+    <div class="flex flex-wrap items-center justify-center max-w-150 gap-3 mt-1.5">
         <label 
             v-for="value, idx in values"
             :class="disabledInfo ? 'text-neutral-400 cursor-not-allowed' : ''"
@@ -67,5 +67,5 @@
                                 : ''"
             @click="add()"
         >Add</button>
-    </section>
+    </div>
 </template>

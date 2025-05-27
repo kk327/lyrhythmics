@@ -22,6 +22,7 @@
     const targetFPS = localStorage.getItem("targetFPS") ? localStorage.getItem("targetFPS") : 60;
     const nonDecimalCurrentTime = localStorage.getItem("nonDecimalCurrentTime");
     const settingsVisible = ref(false);
+    const scrollY = ref(0);
     let savedScrollY = 0;
     const addLyricsVisible = ref(false);
     const quitWarningVisible = ref(false);
@@ -37,11 +38,15 @@
 
     const lyrics = ref(props.data ? props.data.lyrics : []);
 
-    const speed = ref(props.data ? props.data.speed : 1);
+    const speed = ref(props.data ? 
+                        props.data.speed 
+                        : localStorage.getItem("defaultSpeed") ?
+                            localStorage.getItem("defaultSpeed")
+                            : 1);
+    
     const disableVerseBackgroundBlur = ref(localStorage.getItem("disableVerseBackgroundBlur"));
     const skipLyricless = ref(props.data && props.data.skipLyricless && props.partsWithoutLyrics.length ? true : false);
-    const testHueRotate = ref(0);
-    const testBrightness = ref(100);
+    const wordLengthLimit = ref(props.data ? props.data.wordLengthLimit : 0);
 
     const lyricsSettingList = ["capitalization", "accentLetters", "specialCharacters"];
     const lyricsSettings = ref(props.data ? props.data.lyricsSettings : {});
@@ -50,6 +55,9 @@
             lyricsSettings.value[setting] = localStorage.getItem(setting);
         }
     }
+
+    const testHueRotate = ref(0);
+    const testBrightness = ref(100);
 
     const movedWord = ref({});
     let stretchedVerse = ref({});
@@ -238,49 +246,53 @@
         return top * speed.value * 3.5 / window.innerHeight;
     }
 
-    function addLyrics(inputLyrics, lengthBased) {
-        if (inputLyrics.split("\n").filter(e => e).length == 1 && inputLyrics.split("\n").filter(e => e)[0].split(" ").filter(e => e).length == 1 && lengthBased) {
-            lyrics.value = [[{ word: inputLyrics.split("\n").filter(e => e)[0].split(" ").filter(e => e)[0], delay: songDuration.value }]];
-            addLyricsVisible.value = false;
-            return;
-        }
-
-        let skippedIndex = 0;
-        let lastSkipIndex = 0; 
-        const wordAmount = inputLyrics.split("\n").reduce((sum, verse) => sum += verse.split(" ").filter(e => e).length, 0);
-
-        let wordLength = lengthBased ? (songDuration.value - partsWithoutLyrics.value.reduce((sum, e) => sum + e.end - e.start, 0)) / wordAmount : 1;
-        wordLength = lengthBased ? (wordLength * wordAmount - partsWithoutLyrics.value.length * wordLength) / wordAmount : wordLength;
-
-        inputLyrics.split("\n").filter(e => e).map((verse, idx) => {
-            let timeToSkip = 0;
-            if (lengthBased && skippedIndex != partsWithoutLyrics.value.length && !(skippedIndex == partsWithoutLyrics.value.length - 1 && songDuration.value == partsWithoutLyrics.value[skippedIndex].end) && (lyrics.value.length ? (lyrics.value[lyrics.value.length - 1][lyrics.value[lyrics.value.length - 1].length - 1].delay + wordLength >= partsWithoutLyrics.value[skippedIndex].start || lyrics.value[lyrics.value.length - 1][lyrics.value[lyrics.value.length - 1].length - 1].delay + verse.split(" ").length / 2 * wordLength >= partsWithoutLyrics.value[skippedIndex].start) : (wordLength >= partsWithoutLyrics.value[skippedIndex].start || verse.split(" ").length / 2 * wordLength >= partsWithoutLyrics.value[skippedIndex].start))) { // if the first word or the middle of the verse is after the start of the next lyricless part                
-                lyrics.value = lyrics.value.map((e, idx2) => idx2 < lastSkipIndex ? e : e.map((e2) => { return { word: e2.word, delay: (skippedIndex ? partsWithoutLyrics.value[skippedIndex - 1].end : 0) + (e2.delay - (skippedIndex ? partsWithoutLyrics.value[skippedIndex - 1].end : 0)) / ((lyrics.value[lyrics.value.length - 1][lyrics.value[lyrics.value.length - 1].length - 1].delay - (skippedIndex ? partsWithoutLyrics.value[skippedIndex - 1].end : 0)) / (partsWithoutLyrics.value[skippedIndex].start - wordLength * 0.5 - ((skippedIndex ? partsWithoutLyrics.value[skippedIndex - 1].end : 0)))) }})); // start(0 or end of last lyriclesspart) + (delay - start) / ((lastLyricDelayBeforeLyricless - start) / (nextpartwithoutlyrics.start - 0.5wordlength - start))
-
-                lastSkipIndex = idx;
-                timeToSkip = partsWithoutLyrics.value[skippedIndex].end - (lyrics.value.length ? lyrics.value[lyrics.value.length - 1][lyrics.value[lyrics.value.length - 1].length - 1].delay : 0);
-                skippedIndex += 1;
-            };
-
-            lyrics.value.push(verse.split(" ").filter(e => e).map((word, wordId) => {
-                return {
-                    word: word,
-                    delay: lyrics.value.length ? 
-                        lyrics.value[lyrics.value.length - 1][lyrics.value[lyrics.value.length - 1].length - 1].delay + timeToSkip + (1 + wordId) * wordLength
-                        : (1 + wordId) * wordLength + timeToSkip
-                }
-            }));
-
-            if (lengthBased && skippedIndex == partsWithoutLyrics.value.length - 1 && idx == inputLyrics.split("\n").filter(e => e).length - 1 && songDuration.value == partsWithoutLyrics.value[skippedIndex].end) {
-                lyrics.value = lyrics.value.map((e, idx2) => idx2 < lastSkipIndex ? e : e.map((e2) => { return { word: e2.word, delay: (skippedIndex ? partsWithoutLyrics.value[skippedIndex - 1].end : 0) + (e2.delay - (skippedIndex ? partsWithoutLyrics.value[skippedIndex - 1].end : 0)) / ((lyrics.value[lyrics.value.length - 1][lyrics.value[lyrics.value.length - 1].length - 1].delay - (skippedIndex ? partsWithoutLyrics.value[skippedIndex - 1].end : 0)) / (partsWithoutLyrics.value[skippedIndex].start - wordLength * 0.5 - ((skippedIndex ? partsWithoutLyrics.value[skippedIndex - 1].end : 0)))) }}));
+    function addLyrics(inputLyrics, parsedLyrics, lengthBased) {
+        if (!parsedLyrics.length) {
+            if (inputLyrics.split("\n").filter(e => e).length == 1 && inputLyrics.split("\n").filter(e => e)[0].split(" ").filter(e => e).length == 1 && lengthBased) {
+                lyrics.value = [[{ word: inputLyrics.split("\n").filter(e => e)[0].split(" ").filter(e => e)[0], delay: songDuration.value }]];
+                addLyricsVisible.value = false;
+                return;
             }
-        });
 
-        if (lengthBased && skippedIndex && songDuration.value != partsWithoutLyrics.value[partsWithoutLyrics.value.length - 1].end) {
-            lyrics.value = lyrics.value.map((e, idx) => idx < lastSkipIndex ? e : e.map((e2) => { return { word: e2.word, delay: partsWithoutLyrics.value[skippedIndex - 1].end + (e2.delay - partsWithoutLyrics.value[skippedIndex - 1].end) / ((lyrics.value[lyrics.value.length - 1][lyrics.value[lyrics.value.length - 1].length - 1].delay - partsWithoutLyrics.value[skippedIndex - 1].end) / (songDuration.value - partsWithoutLyrics.value[skippedIndex - 1].end)) }}));
+            let skippedIndex = 0;
+            let lastSkipIndex = 0; 
+            const wordAmount = inputLyrics.split("\n").reduce((sum, verse) => sum += verse.split(" ").filter(e => e).length, 0);
+
+            let wordLength = lengthBased ? (songDuration.value - partsWithoutLyrics.value.reduce((sum, e) => sum + e.end - e.start, 0)) / wordAmount : 1;
+            wordLength = lengthBased ? (wordLength * wordAmount - partsWithoutLyrics.value.length * wordLength) / wordAmount : wordLength;
+
+            inputLyrics.split("\n").filter(e => e).map((verse, idx) => {
+                let timeToSkip = 0;
+                if (lengthBased && skippedIndex != partsWithoutLyrics.value.length && !(skippedIndex == partsWithoutLyrics.value.length - 1 && songDuration.value == partsWithoutLyrics.value[skippedIndex].end) && (lyrics.value.length ? (lyrics.value[lyrics.value.length - 1][lyrics.value[lyrics.value.length - 1].length - 1].delay + wordLength >= partsWithoutLyrics.value[skippedIndex].start || lyrics.value[lyrics.value.length - 1][lyrics.value[lyrics.value.length - 1].length - 1].delay + verse.split(" ").length / 2 * wordLength >= partsWithoutLyrics.value[skippedIndex].start) : (wordLength >= partsWithoutLyrics.value[skippedIndex].start || verse.split(" ").length / 2 * wordLength >= partsWithoutLyrics.value[skippedIndex].start))) { // if the first word or the middle of the verse is after the start of the next lyricless part                
+                    lyrics.value = lyrics.value.map((e, idx2) => idx2 < lastSkipIndex ? e : e.map((e2) => { return { word: e2.word, delay: (skippedIndex ? partsWithoutLyrics.value[skippedIndex - 1].end : 0) + (e2.delay - (skippedIndex ? partsWithoutLyrics.value[skippedIndex - 1].end : 0)) / ((lyrics.value[lyrics.value.length - 1][lyrics.value[lyrics.value.length - 1].length - 1].delay - (skippedIndex ? partsWithoutLyrics.value[skippedIndex - 1].end : 0)) / (partsWithoutLyrics.value[skippedIndex].start - wordLength * 0.5 - ((skippedIndex ? partsWithoutLyrics.value[skippedIndex - 1].end : 0)))) }})); // start(0 or end of last lyriclesspart) + (delay - start) / ((lastLyricDelayBeforeLyricless - start) / (nextpartwithoutlyrics.start - 0.5wordlength - start))
+
+                    lastSkipIndex = idx;
+                    timeToSkip = partsWithoutLyrics.value[skippedIndex].end - (lyrics.value.length ? lyrics.value[lyrics.value.length - 1][lyrics.value[lyrics.value.length - 1].length - 1].delay : 0);
+                    skippedIndex += 1;
+                };
+
+                lyrics.value.push(verse.split(" ").filter(e => e).map((word, wordId) => {
+                    return {
+                        word: word,
+                        delay: lyrics.value.length ? 
+                            lyrics.value[lyrics.value.length - 1][lyrics.value[lyrics.value.length - 1].length - 1].delay + timeToSkip + (1 + wordId) * wordLength
+                            : (1 + wordId) * wordLength + timeToSkip
+                    }
+                }));
+
+                if (lengthBased && skippedIndex == partsWithoutLyrics.value.length - 1 && idx == inputLyrics.split("\n").filter(e => e).length - 1 && songDuration.value == partsWithoutLyrics.value[skippedIndex].end) {
+                    lyrics.value = lyrics.value.map((e, idx2) => idx2 < lastSkipIndex ? e : e.map((e2) => { return { word: e2.word, delay: (skippedIndex ? partsWithoutLyrics.value[skippedIndex - 1].end : 0) + (e2.delay - (skippedIndex ? partsWithoutLyrics.value[skippedIndex - 1].end : 0)) / ((lyrics.value[lyrics.value.length - 1][lyrics.value[lyrics.value.length - 1].length - 1].delay - (skippedIndex ? partsWithoutLyrics.value[skippedIndex - 1].end : 0)) / (partsWithoutLyrics.value[skippedIndex].start - wordLength * 0.5 - ((skippedIndex ? partsWithoutLyrics.value[skippedIndex - 1].end : 0)))) }}));
+                }
+            });
+
+            if (lengthBased && skippedIndex && songDuration.value != partsWithoutLyrics.value[partsWithoutLyrics.value.length - 1].end) {
+                lyrics.value = lyrics.value.map((e, idx) => idx < lastSkipIndex ? e : e.map((e2) => { return { word: e2.word, delay: partsWithoutLyrics.value[skippedIndex - 1].end + (e2.delay - partsWithoutLyrics.value[skippedIndex - 1].end) / ((lyrics.value[lyrics.value.length - 1][lyrics.value[lyrics.value.length - 1].length - 1].delay - partsWithoutLyrics.value[skippedIndex - 1].end) / (songDuration.value - partsWithoutLyrics.value[skippedIndex - 1].end)) }}));
+            }
+
+            lyrics.value = lyrics.value.map((e) => e.map((e2) => e2.delay ? e2 : { word: e2.word, delay: 0 }));
+        } else {
+            lyrics.value = parsedLyrics.map((e) => e.verse.split(" ").map((e2, idx) => { return { word: e2, delay: e.start + (e.end - e.start) / (e.verse.split(" ").length) * (idx + 1) }}));
         }
-
-        lyrics.value = lyrics.value.map((e) => e.map((e2) => e2.delay ? e2 : { word: e2.word, delay: 0 }));
         addLyricsVisible.value = false;
     }
 
@@ -299,6 +311,7 @@
     }
 
     function onScroll() {
+        scrollY.value = window.scrollY;
         onMouseMove(mousePosition + window.scrollY, false); 
         if (!settingsVisible.value && !playtesting.value) {
             setBackgroundFilters();
@@ -598,6 +611,7 @@
                 startTime: settingsVisible.value ? 0 : topToDelay(window.scrollY),
                 skipLyricless: skipLyricless,
                 lyricsSettings: lyricsSettings.value,
+                wordLengthLimit: wordLengthLimit.value,
                 playtesting: true
             };
             audio.value.pause();
@@ -713,24 +727,24 @@
         :songDuration="songDuration"
         :currentLyrics="lyrics.length"
         @close="addLyricsVisible = false"
-        @addLyrics="(inputLyrics, lengthBased) => addLyrics(inputLyrics, lengthBased)"
+        @addLyrics="(inputLyrics, parsedLyrics, lengthBased) => addLyrics(inputLyrics, parsedLyrics, lengthBased)"
     />
 
     <!-- quit to menu warning -->
-    <section
+    <div
         v-if="quitWarningVisible || removedVerse != -1 || editedVerse != -1"
         class="fixed left-0 w-screen h-screen flex justify-center items-center text-white z-10"
     >
-        <section class="fixed w-screen h-screen bg-black/50 backdrop-blur-xs"></section> 
+        <div class="fixed w-screen h-screen bg-black/50 backdrop-blur-xs"></div> 
 
-        <section 
+        <div 
             v-if="quitWarningVisible"
             class="flex flex-col items-center max-h-full w-full py-2 overflow-y-auto z-11"
         >
             <h2 class="font-bold text-lg">Are you sure you want to quit?</h2>
             <p>Make sure to export the map first if you want to have it saved.</p>
 
-            <section class="flex gap-3 mt-2.5">
+            <div class="flex gap-3 mt-2.5">
                 <button
                     class="button"
                     @click="quitWarningVisible = false"
@@ -740,17 +754,17 @@
                     class="button"
                     @click="quit()"
                 >Quit</button>
-            </section>
-        </section>
+            </div>
+        </div>
 
-        <section
+        <div
             v-else-if="removedVerse != -1"
             class="flex flex-col items-center max-h-full w-full py-2 overflow-y-auto z-11"
         >
             <p class="font-bold text-lg">Are you sure you want to remove this verse?</p>
             <p>{{ lyrics[removedVerse].map((e) => e.word).join(" ") }}</p>
 
-            <section class="flex gap-3 mt-2.5">
+            <div class="flex gap-3 mt-2.5">
                 <button
                     class="button"
                     @click="removedVerse = -1"
@@ -760,22 +774,22 @@
                     class="button"
                     @click="removeVerse()"
                 >Remove</button>
-            </section>
-        </section>
+            </div>
+        </div>
 
-        <section
+        <div
             v-else
             class="flex flex-col items-center max-h-full w-full py-2 overflow-y-auto z-11"
         >
             <p class="font-bold text-lg mb-2">Input the edited verse.</p>
-            <section class="flex gap-2 flex-wrap justify-center">
+            <div class="flex gap-2 flex-wrap justify-center">
                 <button
                     class="button"
                     title="Add new word."
                         @click="editedVerseData.splice(0, 0, { word: '', delay: editedVerseData[0].delay })"
                 >+</button>
 
-                <section 
+                <div 
                     v-for="word, idx in editedVerseData"
                     class="flex gap-2 items-center"
                 >
@@ -791,11 +805,11 @@
                         title="Add new word."
                         @click="editedVerseData.splice(idx + 1, 0, { word: '', delay: idx == editedVerseData.length - 1 ? editedVerseData[idx].delay : (editedVerseData[idx].delay + editedVerseData[idx + 1].delay) / 2 })"
                     >+</button>
-                </section>
-            </section>
+                </div>
+            </div>
             <p class="mt-2">To remove a verse, edit it and leave it empty.</p>
 
-            <section class="flex gap-3 mt-2.5">
+            <div class="flex gap-3 mt-2.5">
                 <button
                     class="button"
                     @click="editedVerse = -1"
@@ -805,9 +819,9 @@
                     class="button"
                     @click="confirmVerseEdit()"
                 >Confirm</button>
-            </section>
-        </section>
-    </section>
+            </div>
+        </div>
+    </div>
 
     <!-- background image -->
     <img
@@ -818,13 +832,13 @@
         alt="background"
         draggable="false"
     >
-    <section 
+    <div 
         v-if="settingsVisible && !playtesting"
         class="fixed w-screen h-screen bg-black/50 z-[-9] backdrop-blur-xs"
-    ></section>
+    ></div>
 
     <!-- top left buttons -->
-    <section 
+    <div 
         v-if="!playtesting && !settingsVisible"
         class="fixed top-3 left-3 flex gap-3 z-9"
     >
@@ -863,10 +877,10 @@
                 {{ nonDecimalCurrentTime ? Math.round(topToDelay(songPosition)) : (Math.round(topToDelay(songPosition) * 100) / 100).toFixed(2) }}s
             </p>
         </button>
-    </section>
+    </div>
 
     <!-- top right buttons -->
-    <section class="fixed top-3 right-3 flex gap-3 z-9">
+    <div class="fixed top-3 right-3 flex gap-3 z-9">
         <button
             v-if="!playtesting"
             class="button"
@@ -882,13 +896,15 @@
 
         <button
             class="button"
-            :disabled="!songDuration || lyrics.length == 0"
+            :disabled="!songDuration || lyrics.length == 0 || topToDelay(scrollY) >= lyrics[lyrics.length - 1][lyrics[lyrics.length - 1].length - 1].delay"
             :tabindex="tabindex"
             :title="!songDuration ?
-                        'Add a song first' :
-                        lyrics.length == 0 ?
-                            'Input the lyrics first' :
-                            ''"
+                        'Add a song first'
+                        : lyrics.length == 0 ?
+                            'Input the lyrics first'
+                            : topToDelay(scrollY) >= lyrics[lyrics.length - 1][lyrics[lyrics.length - 1].length - 1].delay ?
+                                'You can\'t playtest after the end of the lyrics.'
+                                : ''"
             @click="changePlaytesting()"
         >{{ playtesting ? "Back" : "Playtest" }}</button>
 
@@ -913,7 +929,7 @@
             :tabindex="tabindex"
             @click="settingsVisible = !settingsVisible"
         >Settings</button>
-    </section>
+    </div>
 
     <!-- settings -->
     <main 
@@ -937,7 +953,7 @@
             Hue-rotate for testing: 
             <b>{{ testHueRotate }}°</b>
         </p>
-        <section class="flex gap-2 mb-1.5 mt-1">
+        <div class="flex gap-2 mb-1.5 mt-1">
             <input 
                 v-model="testHueRotate"
                 min="0"
@@ -952,13 +968,13 @@
                 :tabindex="tabindex"
                 @change="(e) => isNaN(parseFloat(e.target.value)) ? testHueRotate = 0 : {}"
             >
-        </section>
+        </div>
 
         <p>
             Brightness for testing: 
             <b>{{ testBrightness }}%</b>
         </p>
-        <section class="flex gap-2 mb-1.5 mt-1">
+        <div class="flex gap-2 mb-1.5 mt-1">
             <input 
                 v-model="testBrightness"
                 min="0"
@@ -973,7 +989,7 @@
                 :tabindex="tabindex"
                 @change="(e) => isNaN(parseFloat(e.target.value)) ? testBrightness = 0 : {}"
             >
-        </section>
+        </div>
 
         <p v-for="filterData, idx in backgroundFilters">
             {{ Math.round(filterData.start * 100) / 100 + "s | " + filterData.hue + "° | " + filterData.brightness + "% | " + Math.round(filterData.transitionDuration * 100) / 100 + (filterData.transitionDuration ? "s (" + Math.round((filterData.start - filterData.transitionDuration) * 100) / 100 + "s - " + Math.round(filterData.start * 100) / 100 + "s)" : "s (instant)") }}
@@ -1101,6 +1117,23 @@
             These settings remove all the lyrics, so playtesting will immediately end.
         </p>
 
+        <label 
+            class="text-center has-disabled:text-neutral-400 has-disabled:cursor-not-allowed"
+            :title="lyrics.length ? '' : 'Add lyrics first.'"
+        >
+            <h2 class="font-bold text-xl mt-4">Word length limit:</h2>
+            <p class="mb-2">(0 means no limit)</p>
+            <input 
+                class="input w-27.5"
+                type="number"
+                min="0"
+                :max="Math.max( ...lyrics.map(e => Math.max( ...e.map(e2 => e2.word.length ))) ) - 1"
+                :disabled="!lyrics.length"
+                v-model="wordLengthLimit"
+                @change="(e) => wordLengthLimit > Math.max( ...lyrics.map(e => Math.max( ...e.map(e2 => e2.word.length ))) ) - 1 ? wordLengthLimit = Math.max( ...lyrics.map(e => Math.max( ...e.map(e2 => e2.word.length ))) ) - 1 : e.target.value < 0 || isNaN(parseFloat(e.target.value)) ? wordLengthLimit = 0 : {}"
+            >
+        </label>
+
         <button
             class="button mt-6"
             :tabindex="tabindex"
@@ -1116,21 +1149,21 @@
         @mousemove="(e) => onMouseMove(e.pageY, false)"
         @mousedown="mouseDown = true"
     >
-        <section
+        <div
             v-for="part, idx in partsWithoutLyrics"
             class="flex justify-center"
         >
-            <section class="w-screen"></section>
-            <section
+            <div class="w-screen"></div>
+            <div
                 class="absolute w-screen border-y-3 z-[-1] border-black bg-[url(@/assets/lyricless.png)]"
                 :style="{ top: calculateTop(part.start) + 'px',
                           height: calculateTop(part.end - part.start) + 'px' }"
-            ></section>
+            ></div>
 
-            <section 
+            <div 
                 class="bg-black w-screen absolute h-0.75"
                 :style="{ top: calculateTop(part.start) + 'px' }"
-            ></section>
+            ></div>
             <button
                 class="rounded-xl absolute cursor-n-resize tracking-[10px] pl-3 pr-1 select-none bg-black text-white"
                 :tabindex="tabindex"
@@ -1138,33 +1171,33 @@
                 @mousedown="stretchedPartWithoutLyrics = { id: idx, direction: 'up' }"
             >↕↕↕↕↕↕↕</button>
 
-            <section 
+            <div 
                 class="bg-black w-screen absolute h-0.75"
                 :style="{ top: calculateTop(part.end) - 4 + 'px' }"
-            ></section>
+            ></div>
             <button
                 class="rounded-xl absolute cursor-s-resize tracking-[10px] pl-3 pr-1 select-none bg-black text-white"
                 :tabindex="tabindex"
                 :style="{ top: calculateTop(part.end) - 16 + 'px' }"
                 @mousedown="stretchedPartWithoutLyrics = { id: idx, direction: 'down' }"
             >↕↕↕↕↕↕↕</button>
-        </section>
+        </div>
 
-        <section 
+        <div 
             v-for="verse, verseId in lyrics"
             class="flex justify-center"
             :style="{ '--color': verseId % 2 == 0 ? 'black' : 'white',
                       '--textColor': verseId % 2 == 0 ? 'white' : 'black' }"
         >
-            <section
+            <div
                 class="absolute w-screen border-y-2 z-[-1] border-(--color)"
                 :style="{ top: calculateTop(verse[0].delay) - 10 + 'px',
                           height: calculateTop(verse[verse.length - 1].delay - verse[0].delay) + 45 + 'px',
                           backdropFilter: disableVerseBackgroundBlur ? '' : 'blur(4px)',
                           backgroundColor: verseId % 2 == 0 ? 'rgb(0, 0, 0, 0.5)' : 'rgb(255, 255, 255, 0.2)' }"
-            ></section>
+            ></div>
 
-            <section 
+            <div 
                 v-for="lyric, lyricId in verse" 
                 :style="{ width: calculateInputWidth(verse.length) }"
             >
@@ -1181,9 +1214,9 @@
                         {{ lyric.word }}
                     </span>
                 </p>
-            </section>
+            </div>
 
-            <section 
+            <div 
                 class="absolute w-full px-1.5 flex justify-between text-(--textColor)"
                 :style="{ top: calculateTop(verse[0].delay) - 22 + 'px' }"
             >
@@ -1204,7 +1237,7 @@
                     @mousedown="movedVerse = { id: verseId, side: 'bottom' }"
                 >•••••••</button>
 
-                <section class="flex items-center gap-1">
+                <div class="flex items-center gap-1">
                     <button
                         v-if="verseId != 0"
                         class="rounded-xl bg-(--color) px-1.5 cursor-pointer hover:scale-[1.05] duration-100 h-full"
@@ -1252,8 +1285,8 @@
                         :tabindex="tabindex"
                         @click="removedVerse = verseId"
                     >X</button>
-                </section>
-            </section>
+                </div>
+            </div>
 
             <!-- top -->
             <button
@@ -1272,7 +1305,7 @@
                 :style="{ top: calculateTop(verse[verse.length - 1].delay) + 22 + 'px' }"
                 @mousedown="stretchedVerse = { id: verseId, direction: 'down' }"
             >↕↕↕↕↕↕↕</button>
-        </section>
+        </div>
     </main>
 
     <main
@@ -1282,20 +1315,20 @@
         @mousemove="(e) => onMouseMove(e.pageY, false)"
         @mousedown="mouseDown = true"
     >
-        <section
+        <div
             v-for="filters, idx in backgroundFilters"
             class="flex justify-center"
             :style="{ '--color': idx % 2 == 0 ? 'black' : 'white',
                       '--textColor': idx % 2 == 0 ? 'white' : 'black' }"
         >
-            <section class="w-screen"></section>
-            <section
+            <div class="w-screen"></div>
+            <div
                 class="absolute w-screen border-y-3 border-x-20 z-[-1] border-(--color)"
                 :style="{ top: calculateTop(filters.start - filters.transitionDuration) + 'px',
                           height: calculateTop(filters.transitionDuration) + 'px' }"
-            ></section>
+            ></div>
 
-            <section 
+            <div 
                 class="absolute w-full px-1.5 flex justify-end gap-1 text-(--textColor)"
                 :style="{ top: calculateTop(filters.start - filters.transitionDuration) - 11 + 'px' }"
             >
@@ -1323,7 +1356,7 @@
                     :tabindex="tabindex"
                     @click="backgroundFilters = backgroundFilters.filter((e, idx2) => idx != idx2)"
                 >X</button>
-            </section>
+            </div>
 
             <button
                 class="rounded-xl absolute cursor-n-resize tracking-[10px] pl-3 pr-1 select-none bg-(--color) text-(--textColor)"
@@ -1338,7 +1371,7 @@
                 :style="{ top: calculateTop(filters.start) - 16 + 'px' }"
                 @mousedown="stretchedFilters = { id: idx, direction: 'down' }"
             >↕↕↕↕↕↕↕</button>
-        </section>
+        </div>
     </main>
 
     <Play 
@@ -1347,9 +1380,9 @@
         @quitPlaytesting="changePlaytesting()"
     />
 
-    <section
+    <div
         v-if="songPosition != -1 && !playtesting && !settingsVisible"
         class="w-full h-2 bg-black border-y-1 border-white absolute"
         :style="{ top: songPosition + 'px' }"
-    ></section>
+    ></div>
 </template>
