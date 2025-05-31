@@ -19,6 +19,7 @@
     const router = useRouter();
 
     const skipLyricless = ref((localStorage.getItem("skipLyricless") && props.data.partsWithoutLyrics.length && !props.pausedVariant) || (props.pausedVariant && props.data.skipLyricless) ? true : false);
+    const autospace = ref((localStorage.getItem("autospaceByDefault") && !props.pausedVariant) || (props.pausedVariant && props.data.autospace));
     const startTime = ref(props.pausedVariant ? props.data.startTime : 0);
 
     const wordLengthLimit = ref(props.pausedVariant ? 
@@ -130,12 +131,21 @@
                     startTime: startTime.value,
                     skipLyricless: skipLyricless.value,
                     lyricsSettings: lyricsSettings.value,
-                    wordLengthLimit: wordLengthLimit };
+                    wordLengthLimit: wordLengthLimit,
+                    autospace: autospace.value };
     }
 
     function redirectAndSetData(link, data) {
         emit("setData", data);
         router.push(link);
+    }
+
+    function downloadMap() {
+        const blob = new Blob([JSON.stringify({ ...props.data, downloadButton: false })], {type: "application/json"});
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = (props.data.name ? props.data.name : "Unnamed Lyrhythmics map") + ".json";
+        a.click();
     }
 </script>
 
@@ -160,6 +170,14 @@
                 v-if="!pausedVariant"
                 class="flex gap-3 mt-2.5 items-center"
             >
+                <button
+                    v-if="data.downloadButton"
+                    class="button h-fit"
+                    @click="downloadMap()"
+                >
+                    Download
+                </button>
+
                 <button
                     class="button h-fit"
                     @click="redirectAndSetData('/editor', buildNewData())"
@@ -186,6 +204,14 @@
                 v-else
                 class="flex gap-3 mt-2.5 items-center"
             >
+                <button
+                    v-if="data.downloadButton"
+                    class="button h-fit"
+                    @click="downloadMap()"
+                >
+                    Download
+                </button>
+
                 <button
                     class="button h-fit"
                     @click="redirectAndSetData('/', {})"
@@ -241,6 +267,24 @@
                     @change="(e) => startTime > Math.round((mapLength - 0.1) * 100) / 100 ? startTime = (Math.round((mapLength - 0.1) * 100) / 100 > 0 ? Math.round((mapLength - 0.1) * 100) / 100 : 0) : e.target.value < 0 || isNaN(parseFloat(e.target.value)) ? startTime = 0 : {}"
                 >
             </label>
+
+            <label 
+                v-if="timeWithoutLyrics && !data.forceskip"
+                class="flex flex-col items-center"
+            >
+                <h2 class="font-bold text-xl mt-4 mb-2">Skip parts without lyrics:</h2>
+                <input 
+                    class="cursor-pointer"
+                    type="checkbox"
+                    v-model="skipLyricless"
+                >
+            </label>
+            <p 
+                v-if="timeWithoutLyrics && !data.forceskip"
+                class="mt-2"
+            >
+                This map has {{ (timeWithoutLyrics >= 60 ? Math.floor(timeWithoutLyrics / 60) + "m " : "") + (timeWithoutLyrics % 60 != 0 ? Math.round(timeWithoutLyrics % 60) + "s" : "") }} without lyrics.
+            </p>
             
             <LyricsCustomization 
                 variant="mapCustomization"
@@ -261,28 +305,19 @@
                     @change="(e) => wordLengthLimit > Math.max( ...data.lyrics.map(e => Math.max( ...e.map(e2 => e2.word.length ))) ) - 1 ? wordLengthLimit = Math.max( ...data.lyrics.map(e => Math.max( ...e.map(e2 => e2.word.length ))) ) - 1 : e.target.value < 0 || isNaN(parseFloat(e.target.value)) ? wordLengthLimit = 0 : {}"
                 >
             </label>
-
-            <label 
-                v-if="timeWithoutLyrics && !data.forceskip"
-                class="flex flex-col items-center"
-            >
-                <h2 class="font-bold text-xl mt-4 mb-2">Skip parts without lyrics:</h2>
+        
+            <label :class="data.forceskip ? 'flex flex-col items-center' : 'flex flex-col items-center mb-1'">
+                <h2 class="font-bold text-xl mt-4">Autospace:</h2>
+                <p class="mb-2 max-w-125 text-center">(automatically goes to the next word when you type a word correctly or the current word passes. Whether this is easier is a preference)</p>
                 <input 
                     class="cursor-pointer"
                     type="checkbox"
-                    v-model="skipLyricless"
+                    v-model="autospace"
                 >
             </label>
 
             <p 
-                v-if="timeWithoutLyrics && !data.forceskip"
-                class="mt-2"
-            >
-                This map has {{ (timeWithoutLyrics >= 60 ? Math.floor(timeWithoutLyrics / 60) + "m " : "") + (timeWithoutLyrics % 60 != 0 ? Math.round(timeWithoutLyrics % 60) + "s" : "") }} without lyrics.
-            </p>
-
-            <p 
-                v-else-if="data.forceskip"
+                v-if="data.forceskip"
                 class="mt-4"
             >This map skips {{ data.partsWithoutLyrics.length == 1 ? 'a part' : 'parts' }} of the song. Time-wise, {{ (timeWithoutLyrics >= 60 ? Math.floor(timeWithoutLyrics / 60) + "m " : "") + (timeWithoutLyrics % 60 != 0 ? Math.round(timeWithoutLyrics % 60) + "s" : "") }} of it.</p>
         </div>

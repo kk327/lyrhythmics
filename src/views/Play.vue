@@ -15,7 +15,7 @@
 
     const router = useRouter();
 
-    const lyrics = ref(props.data.lyrics.map((e) => e.map((e2) => { return props.data.lyricsSettings.capitalization ? e2 : { word: e2.word.toLowerCase(), delay: e2.delay }}).map((e2) => { return props.data.lyricsSettings.accentLetters ? e2 : { word: e2.word.normalize("NFKD").replace(/\p{Diacritic}/gu, ""), delay: e2.delay } }).map((e2) => { return props.data.lyricsSettings.specialCharacters ? e2 : { word: e2.word.replace(/\P{Letter}/gu, ""), delay: e2.delay } }).filter((e2) => e2.word).map((e2) => props.data.wordLengthLimit ? { ...e2, word: e2.word.slice(0, props.data.wordLengthLimit) } : e2 )).filter((e) => e.length));
+    const lyrics = ref(props.data.lyrics.map((e) => e.map((e2) => { return props.data.lyricsSettings.capitalization ? e2 : { word: e2.word.toLowerCase(), delay: e2.delay }}).map((e2) => { return props.data.lyricsSettings.accentLetters ? e2 : { word: e2.word.replace(/ł/g, "l").replace(/Ł/g, "L").replace(/Ø/g, "O").replace(/ø/g, "o").normalize("NFKD").replace(/\p{Diacritic}/gu, ""), delay: e2.delay } }).map((e2) => { return props.data.lyricsSettings.specialCharacters ? e2 : { word: e2.word.replace(/\P{Letter}/gu, ""), delay: e2.delay } }).filter((e2) => e2.word).map((e2) => props.data.wordLengthLimit ? { ...e2, word: e2.word.slice(0, props.data.wordLengthLimit) } : e2 )).filter((e) => e.length));
     const finished = ref(false);
     const finalScore = ref(0);
 
@@ -183,6 +183,12 @@
         }
     });
 
+    watch(inputLyrics, () => {
+        if (props.data.autospace && Object.keys(inputs).map((key) => inputs[key]).some((e) => e == document.activeElement) && inputLyrics.value[Object.keys(inputs).map((key) => inputs[key]).findIndex((e) => e == document.activeElement)] == lyrics.value[lyricsId.value][Object.keys(inputs).map((key) => inputs[key]).findIndex((e) => e == document.activeElement)].word && Object.keys(inputs).map((key) => inputs[key]).findIndex((e) => e == document.activeElement) != lyrics.value[lyricsId.value].length - 1) {
+            inputs[Object.keys(inputs).map((key) => inputs[key]).findIndex((e) => e == document.activeElement) + 1].focus();
+        }
+    }, { deep: true });
+
     function onResize() {
         sizeRefresh.value = !sizeRefresh.value;
     }
@@ -209,6 +215,7 @@
 
         song.playbackRate = speed.value;
         song.currentTime = startTime.value;
+        song.preservesPitch = !localStorage.getItem("changeThePitch");
         song.play();
 
         function onSongPause() {
@@ -286,6 +293,10 @@
                         correctnessStates.value[checkedWord.value] = "X";
                         wordStatistics.value.X++;
                     }
+                }
+
+                if (props.data.autospace && inputs[checkedWord.value] == document.activeElement && checkedWord.value != lyrics.value[lyricsId.value].length - 1) {
+                    inputs[checkedWord.value + 1].focus();
                 }
 
                 if (checkedWord.value == lyrics.value[lyricsId.value].length - 1) {
@@ -421,6 +432,18 @@
         emit("setData", {});
         router.push("/");
     }
+
+    function downloadMap() {
+        const blob = new Blob([JSON.stringify({ ...props.data, downloadButton: false })], {type: "application/json"});
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = (props.data.name ? props.data.name : "Unnamed Lyrhythmics map") + ".json";
+        a.click();
+    }
+
+    function aOrAnNumber(number) {
+        return number[0] == "8" || (number.match(/^(11|18)/) && (number.length - 2) % 3 == 0) ? "an " : "a ";
+    }
 </script>
 
 <template>
@@ -444,7 +467,7 @@
             class="fixed h-screen w-screen object-cover select-none text-black text-[0px]" 
             :style="{ filter: 'hue-rotate(' + currentHue + 'deg) brightness(' + currentBrightness / 100 + ')' }"
             :src="props.data.backgroundImage" 
-            alt="Background image"
+            alt="Background"
             draggable="false"
             @error="imageLoadFailed()"
         >
@@ -482,7 +505,10 @@
             class="fixed top-1.5 w-full flex justify-center"
         >
             <p class="bg-black/40 px-4 py-1.25 rounded-xl backdrop-blur-md max-w-[calc(100vw-375px)] text-center">
-                Press any key to start. {{ (startTime == 0 ? "The map starts with a " + (props.data.partsWithoutLyrics.length && props.data.partsWithoutLyrics[0].start == 0 ? Math.round(data.partsWithoutLyrics[0].end / speed) + " second" + (Math.round(props.data.partsWithoutLyrics[0].end / speed) == 1 ? "" : "s") + " long" : "short") + " lyricless part." : "You started in a " + (data.partsWithoutLyrics.filter((e) => e.start <= time && e.end > time).length ? "lyricless part. It ends in " + Math.round(data.partsWithoutLyrics.filter((e) => e.start <= time && e.end > time)[0].end / speed - time) + " second" + (Math.round(data.partsWithoutLyrics.filter((e) => e.start <= time && e.end > time)[0].end / speed - time) == 1 ? "" : "s") + "." : "short lyricless part.")) + (data.skipLyricless || data.forceskip ? " It wasn't marked as a lyricless part, so it wasn't skipped." : "") }}
+                Press any key to start. {{ 
+                    (startTime == 0 ? "The map starts with " + (props.data.partsWithoutLyrics.length && props.data.partsWithoutLyrics[0].start == 0 ? aOrAnNumber(Math.round(data.partsWithoutLyrics[0].end / speed).toString()) + Math.round(data.partsWithoutLyrics[0].end / speed) + " second" + (Math.round(props.data.partsWithoutLyrics[0].end / speed) == 1 ? "" : "s") + " long" : aOrAnNumber(Math.round(lyrics[0][0].delay / speed - 3.5).toString()) + Math.round(lyrics[0][0].delay / speed - 3.5) + " second" + (Math.round(lyrics[0][0].delay / speed - 3.5) == 1 ? "" : "s") + " long unmarked") + " lyricless part" 
+                    : "You started in a" + (data.partsWithoutLyrics.filter((e) => e.start <= time && e.end > time).length ? " lyricless part. It ends in " + Math.round(data.partsWithoutLyrics.filter((e) => e.start <= time && e.end > time)[0].end / speed - time) + " second" + (Math.round(data.partsWithoutLyrics.filter((e) => e.start <= time && e.end > time)[0].end / speed - time) == 1 ? "" : "s") : "n unmarked lyricless part. It ends in " + Math.round(lyrics.filter(e => e[0].delay / speed > time)[0][0].delay / speed - 3.5 - time) + " second" + (Math.round(lyrics.filter(e => e[0].delay / speed > time)[0][0].delay / speed - 3.5 - time) == 1 ? "" : "s"))) 
+                    + (data.skipLyricless || data.forceskip ? ". As it's unmarked, it wasn't skipped." : ".") }}
             </p>
         </div>
 
@@ -608,6 +634,14 @@
                         @click="quit()"
                     >
                         Main menu
+                    </button>
+
+                    <button
+                        v-if="data.downloadButton"
+                        class="button h-fit"
+                        @click="downloadMap()"
+                    >
+                        Download map
                     </button>
 
                     <button

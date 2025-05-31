@@ -45,8 +45,9 @@
                             : 1);
     
     const disableVerseBackgroundBlur = ref(localStorage.getItem("disableVerseBackgroundBlur"));
-    const skipLyricless = ref(props.data && props.data.skipLyricless && props.partsWithoutLyrics.length ? true : false);
+    const skipLyricless = ref(props.data && props.data.skipLyricless && props.data.partsWithoutLyrics.length ? true : false);
     const wordLengthLimit = ref(props.data ? props.data.wordLengthLimit : 0);
+    const autospace = ref((localStorage.getItem("autospaceByDefault") && !props.data) || (props.data && props.data.autospace));
 
     const lyricsSettingList = ["capitalization", "accentLetters", "specialCharacters"];
     const lyricsSettings = ref(props.data ? props.data.lyricsSettings : {});
@@ -111,6 +112,7 @@
                 audio.value = new Audio(song.value);
                 await audio.value.play();
                 audio.value.pause();
+                audio.value.preservesPitch = !localStorage.getItem("changeThePitch");
 
                 let attemptInterval = setInterval(() => {
                     if (audio.value.duration != Infinity) {
@@ -612,6 +614,7 @@
                 skipLyricless: skipLyricless,
                 lyricsSettings: lyricsSettings.value,
                 wordLengthLimit: wordLengthLimit.value,
+                autospace: autospace.value,
                 playtesting: true
             };
             audio.value.pause();
@@ -673,6 +676,7 @@
     function onSongLoad(newSong, newAudio, newSongDuration) {
         song.value = newSong;
         audio.value = newAudio;
+        audio.value.preservesPitch = !localStorage.getItem("changeThePitch");
         songDuration.value = newSongDuration;
     }
 
@@ -829,7 +833,7 @@
         class="fixed h-[calc(100vh+50px)] top-[-25px] w-screen object-cover select-none z-[-10] bg-neutral-900"  
         :style="{ filter: 'hue-rotate(' + (settingsVisible ? testHueRotate : currentHue) + 'deg) brightness(' + (settingsVisible ? testBrightness : currentBrightness) / 100 + ')' }"
         :src="backgroundImage" 
-        alt="background"
+        alt="Background"
         draggable="false"
     >
     <div 
@@ -896,13 +900,13 @@
 
         <button
             class="button"
-            :disabled="!songDuration || lyrics.length == 0 || topToDelay(scrollY) >= lyrics[lyrics.length - 1][lyrics[lyrics.length - 1].length - 1].delay"
+            :disabled="!songDuration || lyrics.length == 0 || (topToDelay(scrollY) >= lyrics[lyrics.length - 1][lyrics[lyrics.length - 1].length - 1].delay && !settingsVisible)"
             :tabindex="tabindex"
             :title="!songDuration ?
                         'Add a song first'
                         : lyrics.length == 0 ?
                             'Input the lyrics first'
-                            : topToDelay(scrollY) >= lyrics[lyrics.length - 1][lyrics[lyrics.length - 1].length - 1].delay ?
+                            : topToDelay(scrollY) >= lyrics[lyrics.length - 1][lyrics[lyrics.length - 1].length - 1].delay && !settingsVisible ?
                                 'You can\'t playtest after the end of the lyrics.'
                                 : ''"
             @click="changePlaytesting()"
@@ -936,7 +940,11 @@
         v-if="settingsVisible && !playtesting"
         class="flex flex-col items-center w-full min-h-screen text-white pb-4"
     >
-        <h1 class="mt-8 font-bold text-2xl">Map settings:</h1>
+        <div class="flex flex-row items-center mt-8 gap-3">
+            <hr class="w-25 border-t-3">
+            <h1 class="font-bold text-2xl">Map settings</h1>
+            <hr class="w-25 border-t-3">
+        </div>
         
         <SongAndBackgroundInputs
             :tabindex="tabindex"
@@ -1081,7 +1089,12 @@
             >
         </label>
 
-        <h1 class="mt-8 font-bold text-2xl">Editor settings:</h1>
+        <div class="flex flex-row items-center mt-8 gap-3">
+            <hr class="w-25 border-t-3">
+            <h1 class="font-bold text-2xl">Editor/playtesting settings</h1>
+            <hr class="w-25 border-t-3">
+        </div>
+
         <SpeedSelector
             :defaultSpeed="speed"
             :tabindex="tabindex"
@@ -1113,7 +1126,7 @@
             :tabindex="tabindex"
             @settingChanged="(name, value) => lyricsSettings[name] = value"
         />
-        <p v-if="lyrics.length && !lyrics.map((e) => e.map((e2) => { return lyricsSettings.capitalization ? e2 : { word: e2.word.toLowerCase(), delay: e2.delay }}).map((e2) => { return lyricsSettings.accentLetters ? e2 : { word: e2.word.normalize('NFKD').replace(/\p{Diacritic}/gu, ''), delay: e2.delay } }).map((e2) => { return lyricsSettings.specialCharacters ? e2 : { word: e2.word.replace(/\P{Letter}/gu, ''), delay: e2.delay } }).filter((e2) => e2.word)).filter((e) => e.length).length">
+        <p v-if="lyrics.length && !lyrics.map((e) => e.map((e2) => { return lyricsSettings.accentLetters ? e2 : { word: e2.word.normalize('NFKD').replace(/\p{Diacritic}/gu, ''), delay: e2.delay } }).map((e2) => { return lyricsSettings.specialCharacters ? e2 : { word: e2.word.replace(/\P{Letter}/gu, ''), delay: e2.delay } }).filter((e2) => e2.word)).filter((e) => e.length).length">
             These settings remove all the lyrics, so playtesting will immediately end.
         </p>
 
@@ -1131,6 +1144,15 @@
                 :disabled="!lyrics.length"
                 v-model="wordLengthLimit"
                 @change="(e) => wordLengthLimit > Math.max( ...lyrics.map(e => Math.max( ...e.map(e2 => e2.word.length ))) ) - 1 ? wordLengthLimit = Math.max( ...lyrics.map(e => Math.max( ...e.map(e2 => e2.word.length ))) ) - 1 : e.target.value < 0 || isNaN(parseFloat(e.target.value)) ? wordLengthLimit = 0 : {}"
+            >
+        </label>
+
+        <label class="flex flex-col items-center">
+            <h2 class="font-bold text-xl mt-4 mb-2">Autospace:</h2>
+            <input 
+                class="cursor-pointer"
+                type="checkbox"
+                v-model="autospace"
             >
         </label>
 
@@ -1248,7 +1270,7 @@
                         <img 
                             :class="verseId % 2 == 0 ? 'w-3 rotate-[-90deg]' : 'w-3 rotate-[-90deg] brightness-0'"
                             src="@/assets/arrow.png" 
-                            alt="arrow pointing up"
+                            alt="Arrow pointing up"
                         >
                     </button>
 
@@ -1262,7 +1284,7 @@
                         <img 
                             :class="verseId % 2 == 0 ? 'w-3 rotate-90' : 'w-3 rotate-90 brightness-0'"
                             src="@/assets/arrow.png" 
-                            alt="arrow pointing down"
+                            alt="Arrow pointing down"
                         >
                     </button>
 
@@ -1272,10 +1294,10 @@
                         :tabindex="tabindex"
                         @click="editVerse(verseId)"
                     >
-                    <img 
-                        :class="verseId % 2 == 0 ? 'w-3' : 'w-3 brightness-0'"
-                        src="@/assets/edit.png" 
-                        alt="edit icon"
+                        <img 
+                            :class="verseId % 2 == 0 ? 'w-3' : 'w-3 brightness-0'"
+                            src="@/assets/edit.png" 
+                            alt="Edit icon"
                         >
                     </button>
 

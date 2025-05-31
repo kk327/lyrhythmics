@@ -13,7 +13,9 @@
     const hueRotate = ref(0);
     const partsWithoutLyrics = ref([]);
     const backgroundImage = ref(defaultBackground);
-    const name = ref("");
+
+    const songLrcName = ref("");
+    const songFileName = ref("");
 
     const song = ref("");
     const audio = ref(new Audio());
@@ -38,7 +40,7 @@
         song.value = newSong;
         audio.value = newAudio;
         songDuration.value = newSongDuration;
-        name.value = songName;
+        songFileName.value = songName;
     }
 
     function calculateLyrics() {
@@ -93,6 +95,14 @@
     function parseLyrics() {
         try {
             if (lyricsType.value == "lrc") {
+                songLrcName.value = lyrics.value.match(/(?<=\[ti:).*(?=\])/) && (lyrics.value.match(/(?<=\[ar:).*(?=\])/) || lyrics.value.match(/(?<=\[au:).*(?=\])/) || lyrics.value.match(/(?<=\[lr:).*(?=\])/)) ? 
+                    (lyrics.value.match(/(?<=\[ar:).*(?=\])/) ?
+                        lyrics.value.match(/(?<=\[ar:).*(?=\])/)[0].trim()
+                        : lyrics.value.match(/(?<=\[au:).*(?=\])/) ? 
+                            lyrics.value.match(/(?<=\[au:).*(?=\])/)[0].trim()
+                            : lyrics.value.match(/(?<=\[lr:).*(?=\])/)[0].trim()) + " - " + lyrics.value.match(/(?<=\[ti:).*(?=\])/)[0].trim()
+                    : "";
+
                 parsedLyrics.value = lyrics.value.split("\n").filter(e => e && !isNaN(parseFloat(e.split("]")[0].slice(1).split(":")[0]))).map((e) => { return { verse: e.split("]")[1].replace("\r", ""), start: e.split("]")[0].slice(1).split(":")[0] * 60 + Number(e.split("]")[0].slice(1).split(":")[1]) }});
                 parsedLyrics.value = parsedLyrics.value.map((e, idx) => { return { ...e, end: idx == parsedLyrics.value.length - 1 ? (idx != 0 ? e.start * 2 - parsedLyrics.value[idx - 1].start : e.start + 1) : parsedLyrics.value[idx + 1].start }}).filter(e => e.verse); 
             } else {
@@ -111,7 +121,7 @@
         }
     }
 
-    watch(() => songDuration.value + lyricsType.value, () => {
+    watch(lyricsType, () => {
         if (lyricsType.value != "text") {
             parseLyrics();
         }
@@ -287,7 +297,11 @@
                                 'The lyrics cannot be parsed due to an error. Make sure everything is correct, or if you didn\'t intend to parse them as a .srt, .vtt or .lrc file, change the type to text.' 
                                 : ''"
             @click="$emit('setData', {
-                name: name ? name : 'Unnamed map',
+                name: songLrcName ? 
+                        songLrcName 
+                        : songFileName ? 
+                            songFileName 
+                            : 'Unnamed map',
                 mapper: 'Automap',
                 additionalInfo: '',
                 song: song,
@@ -296,6 +310,7 @@
                 lyrics: calculateLyrics(),
                 partsWithoutLyrics: lyricsType == 'text' ? partsWithoutLyrics.map((e) => { return { start: e.start + 1, end: e.end - 1 }}).filter((e) => e.end > e.start) : partsWithoutLyrics,
                 forceskip: false,
+                downloadButton: true,
                 automapSongSkipping: lyricsType == 'text',
                 id: new Array(32).fill('QWERTYUIOPASDFGHJKLZXCVBNMqwertyuiopasdfghjklzxcvbnm1234567890').map((e) => e[Math.floor(Math.random() * e.length)]).join('')
             })"
