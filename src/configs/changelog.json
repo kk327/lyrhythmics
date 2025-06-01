@@ -1,5 +1,12 @@
 { 
     "releases": [{
+            "version": "1.2.2",
+            "date": "June 1st, 2025",
+            "changes": [
+                "Fixed a typo in the first word of the about page. Lyrythmics -> Lyrhythmics"
+            ]
+        },
+        {
             "version": "1.2.1",
             "date": "June 1st, 2025",
             "changes": [

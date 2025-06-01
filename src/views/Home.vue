@@ -686,7 +686,7 @@
 
             <h2 class="text-xl font-bold mb-1.5">Introduction</h2>
             <p class="max-w-275">
-                Lyrythmics is a game in which you type the lyrics of songs. It's made by k327, and it's free and open source software. On this page I will describe some aspects of the game that should be explained. First, for fast navigation there usually are keyboard shortcuts, either escape, enter or control + enter. {{ config.enableFullscreenButton ? "Although note that on most browsers pressing escape will also make you leave fullscreen if you're in fullscreen mode, and you will have to press escape again after that." : "" }} Also, you can see the changelog of updates by clicking on the version number in the corner of the menu.
+                Lyrhythmics is a game in which you type the lyrics of songs. It's made by k327, and it's free and open source software. On this page I will describe some aspects of the game that should be explained. First, for fast navigation there usually are keyboard shortcuts, either escape, enter or control + enter. {{ config.enableFullscreenButton ? "Although note that on most browsers pressing escape will also make you leave fullscreen if you're in fullscreen mode, and you will have to press escape again after that." : "" }} Also, you can see the changelog of updates by clicking on the version number in the corner of the menu.
             </p>
 
             <h2 class="text-xl font-bold my-1.5">Score system</h2>
