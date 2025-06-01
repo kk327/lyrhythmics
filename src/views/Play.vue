@@ -565,7 +565,7 @@
             v-if="finished"
             class="fixed left-0 w-screen h-screen flex justify-center items-center text-white z-10 text-center"
         >
-            <div class="fixed w-screen h-screen bg-black/50 backdrop-blur-xs"></div> 
+            <div class="fixed w-screen h-screen bg-black/60 backdrop-blur-xs"></div> 
             <div class="flex flex-col items-center max-h-full w-full py-2 overflow-y-auto z-11">
                 <PinkHeader 
                     :text="'Score: ' + (finalScore == -1 ? '??' : finalScore) + '%'" 

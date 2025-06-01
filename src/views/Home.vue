@@ -1,5 +1,5 @@
 <script setup>
-    import { ref, onUnmounted, computed, watch, reactive } from "vue";
+    import { ref, onUnmounted, computed, watch, watchEffect, reactive } from "vue";
     import { useRouter } from 'vue-router';
     import defaultBackground from "@/assets/background.png";
     import changelog from "@/configs/changelog.json";
@@ -39,7 +39,8 @@
 
     const props = defineProps([
         "mobileWarningAccepted",
-        "cachedMaps"
+        "cachedMaps",
+        "fullscreen"
     ]);
 
     const emit = defineEmits([
@@ -91,6 +92,7 @@
     const highscoreResetWarning = ref(false);
     const fileLoadError = ref("");
     const forceDefaultBackground = ref(false);
+    const fullscreen = ref(props.fullscreen);
 
     const selectedMapData = ref({});
     let mapDownloadAbortController = new AbortController();
@@ -173,6 +175,10 @@
 
     watch(() => settings.hideFullscreenButton, () => {
         emit("toggleFullscreenButton");
+    });
+
+    watchEffect(() => {
+        fullscreen.value = props.fullscreen;
     });
 
     document.body.style.overflowY = "hidden";
@@ -330,7 +336,7 @@
                 const signal = mapDownloadAbortController.signal;
                     forceDefaultBackground.value = false;
 
-                await fetch("/maps/" + codeName + ".json", { signal: signal })
+                await fetch("maps/" + codeName + ".json", { signal: signal })
                     .then(async (response) => { 
                         selectedMapData.value = await response.json();
                         if (!settings.disableCaching) {
@@ -479,7 +485,7 @@
             </button>
         </nav>
 
-        <p class="fixed text-white bottom-2 left-2 bg-black/40 py-1 px-2 rounded-xl backdrop-blur-md z-7 w-193 max-w-[calc(100%-750px)] min-w-50">
+        <p :class="!settings.hideFullscreenButton && !fullscreen ? 'fixed text-white bottom-15 left-2 bg-black/40 py-1 px-2 rounded-xl backdrop-blur-md z-7 w-193 max-w-[calc(100%-750px)] min-w-50' : 'fixed text-white bottom-2 left-2 bg-black/40 py-1 px-2 rounded-xl backdrop-blur-md z-7 w-193 max-w-[calc(100%-750px)] min-w-50'">
             This is the official list of mapped songs. Only songs with a license that allows using them are here. If you want to play a map with a song that isn't here, you can use the 
             <button
                 class="cursor-pointer text-pink-300 hover:text-pink-500 duration-100"
@@ -515,7 +521,7 @@
         v-if="visibleOverlay || fileLoadError"
         class="fixed left-0 w-screen h-screen flex justify-center items-center text-white z-12"
     >   
-        <div class="fixed w-screen h-screen bg-black/50 backdrop-blur-xs"></div> 
+        <div class="fixed w-screen h-screen bg-black/60 backdrop-blur-xs"></div> 
 
         <div 
             v-if="visibleOverlay == 'automap'"
@@ -680,7 +686,7 @@
 
             <h2 class="text-xl font-bold mb-1.5">Introduction</h2>
             <p class="max-w-275">
-                Lyrythmics is a game in which you type the lyrics of songs. It's made by k327, and it's free and open source software. On this page I will describe some aspects of the game that should be explained. First, for fast navigation there usually are keyboard shortcuts, either escape, enter or control + enter. {{ config.enableFullscreenButton || platform == "itch.io" ? "Although note that on most browsers pressing escape will also make you leave fullscreen if you're in fullscreen mode, and you will have to press escape again after that." : "" }} Also, you can see the changelog of updates by clicking on the version number in the corner of the menu.
+                Lyrythmics is a game in which you type the lyrics of songs. It's made by k327, and it's free and open source software. On this page I will describe some aspects of the game that should be explained. First, for fast navigation there usually are keyboard shortcuts, either escape, enter or control + enter. {{ config.enableFullscreenButton ? "Although note that on most browsers pressing escape will also make you leave fullscreen if you're in fullscreen mode, and you will have to press escape again after that." : "" }} Also, you can see the changelog of updates by clicking on the version number in the corner of the menu.
             </p>
 
             <h2 class="text-xl font-bold my-1.5">Score system</h2>

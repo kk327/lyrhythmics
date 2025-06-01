@@ -1,5 +1,18 @@
 { 
     "releases": [{
+            "version": "1.2.1",
+            "date": "June 1st, 2025",
+            "changes": [
+                "Changed the code a bit to make dynamic map loading work on Newgrounds and itch.io, decreasing initial loading time by a lot.",
+                "The darkening and blur effect behind menus now has a higher opacity to make it easier to read the text in the menu.",
+                "Now when a .lrc file provides the information on who made the file, automap sets the map author to \"Automap (.lrc by author)\".",
+                "Automap now sets the song name to just the provided title if there's no information on who made it or if the provided title contains \" - \", which means that it most likely already contains the creator.",
+                "The itch.io version now uses the in-game fullscreen button instead of itch.io's built-in one.",
+                "The fullscreen button that's on Newgrounds and now itch.io is no longer on top of the text in the song list.",
+                "The hover title of the fullscreen button now has a full stop at the end of it."
+            ]
+        },
+        {
         "version": "1.2.0",
         "date": "May 31st, 2025",
         "changes": [

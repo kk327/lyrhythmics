@@ -31,6 +31,7 @@
         v-if="router.currentRoute.value.path == '/'"
         :mobileWarningAccepted="mobileWarningAccepted"
         :cachedMaps="cachedMaps"
+        :fullscreen="fullscreen"
         @acceptMobileWarning="mobileWarningAccepted = true"
         @cacheMap="(idx, mapData) => cachedMaps[idx] = mapData"
         @clearCache="cachedMaps = {}"
@@ -59,7 +60,7 @@
     <button
         v-if="!fullscreen && config.enableFullscreenButton && !hideFullscreenButton"
         class="fixed group bottom-2 left-2 bg-black/20 px-2.5 py-2.5 rounded-xl backdrop-blur-sm z-100 cursor-pointer border-white/0 border-2 hover:backdrop-blur-md hover:bg-black/40 hover:border-white hover:opacity-100 hover:brightness-125 duration-200"
-        title="Enter fullscreen"
+        title="Enter fullscreen."
         @click="enterFullscreen()"
     >
         <img 

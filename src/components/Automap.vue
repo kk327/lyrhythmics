@@ -95,13 +95,15 @@
     function parseLyrics() {
         try {
             if (lyricsType.value == "lrc") {
-                songLrcName.value = lyrics.value.match(/(?<=\[ti:).*(?=\])/) && (lyrics.value.match(/(?<=\[ar:).*(?=\])/) || lyrics.value.match(/(?<=\[au:).*(?=\])/) || lyrics.value.match(/(?<=\[lr:).*(?=\])/)) ? 
-                    (lyrics.value.match(/(?<=\[ar:).*(?=\])/) ?
-                        lyrics.value.match(/(?<=\[ar:).*(?=\])/)[0].trim()
-                        : lyrics.value.match(/(?<=\[au:).*(?=\])/) ? 
-                            lyrics.value.match(/(?<=\[au:).*(?=\])/)[0].trim()
-                            : lyrics.value.match(/(?<=\[lr:).*(?=\])/)[0].trim()) + " - " + lyrics.value.match(/(?<=\[ti:).*(?=\])/)[0].trim()
-                    : "";
+                songLrcName.value = lyrics.value.match(/(?<=\[ti:).*(?=\])/) && (lyrics.value.match(/(?<=\[ti:).*(?=\])/)[0].trim().includes(" - ") || !(lyrics.value.match(/(?<=\[ar:).*(?=\])/) || lyrics.value.match(/(?<=\[au:).*(?=\])/) || lyrics.value.match(/(?<=\[lr:).*(?=\])/))) ? 
+                    lyrics.value.match(/(?<=\[ti:).*(?=\])/)[0].trim()
+                    : lyrics.value.match(/(?<=\[ti:).*(?=\])/) ?
+                        (lyrics.value.match(/(?<=\[ar:).*(?=\])/) ?
+                            lyrics.value.match(/(?<=\[ar:).*(?=\])/)[0].trim()
+                            : lyrics.value.match(/(?<=\[au:).*(?=\])/) ? 
+                                lyrics.value.match(/(?<=\[au:).*(?=\])/)[0].trim()
+                                : lyrics.value.match(/(?<=\[lr:).*(?=\])/)[0].trim()) + " - " + lyrics.value.match(/(?<=\[ti:).*(?=\])/)[0].trim()
+                        : "";
 
                 parsedLyrics.value = lyrics.value.split("\n").filter(e => e && !isNaN(parseFloat(e.split("]")[0].slice(1).split(":")[0]))).map((e) => { return { verse: e.split("]")[1].replace("\r", ""), start: e.split("]")[0].slice(1).split(":")[0] * 60 + Number(e.split("]")[0].slice(1).split(":")[1]) }});
                 parsedLyrics.value = parsedLyrics.value.map((e, idx) => { return { ...e, end: idx == parsedLyrics.value.length - 1 ? (idx != 0 ? e.start * 2 - parsedLyrics.value[idx - 1].start : e.start + 1) : parsedLyrics.value[idx + 1].start }}).filter(e => e.verse); 
@@ -302,7 +304,7 @@
                         : songFileName ? 
                             songFileName 
                             : 'Unnamed map',
-                mapper: 'Automap',
+                mapper: 'Automap' + (lyricsType == 'lrc' && lyrics.match(/(?<=\[by:).*(?=\])/) ? ' (.lrc by ' + lyrics.match(/(?<=\[by:).*(?=\])/)[0].trim() + ')' : ''),
                 additionalInfo: '',
                 song: song,
                 backgroundImage: backgroundImage,
