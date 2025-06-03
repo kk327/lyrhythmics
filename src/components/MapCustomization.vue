@@ -1,13 +1,15 @@
 <script setup>
     import { ref, computed, onUnmounted, watchEffect } from "vue";
     import { useRouter } from "vue-router";
+    import defaultBackground from "@/assets/background.png";
     import PinkHeader from '@/components/PinkHeader.vue';
     import SpeedSelector from "./SpeedSelector.vue";
     import LyricsCustomization from './LyricsCustomization.vue';
     
     const props = defineProps([
         "data",
-        "pausedVariant"
+        "pausedVariant",
+        "continuedWithSettings"
     ]);
 
     const emit = defineEmits([
@@ -19,7 +21,7 @@
     const router = useRouter();
 
     const skipLyricless = ref((localStorage.getItem("skipLyricless") && props.data.partsWithoutLyrics.length && !props.pausedVariant) || (props.pausedVariant && props.data.skipLyricless) ? true : false);
-    const autospace = ref((localStorage.getItem("autospaceByDefault") && !props.pausedVariant) || (props.pausedVariant && props.data.autospace));
+    const autospace = ref((localStorage.getItem("autospaceByDefault") && !props.pausedVariant) || (props.pausedVariant && props.data.autospace) ? true : false);
     const startTime = ref(props.pausedVariant ? props.data.startTime : 0);
 
     const wordLengthLimit = ref(props.pausedVariant ? 
@@ -37,7 +39,7 @@
                             : 1);
     
     const lyricsSettingList = ["capitalization", "accentLetters", "specialCharacters"];
-    const lyricsSettings = ref(props.pausedVariant ? props.data.lyricsSettings : {});
+    const lyricsSettings = ref(props.pausedVariant ? JSON.parse(JSON.stringify(props.data.lyricsSettings)) : {});
     if (!props.pausedVariant) {
         for (let setting of lyricsSettingList) {
             lyricsSettings.value[setting] = localStorage.getItem(setting);
@@ -45,6 +47,7 @@
     }
 
     const highscore = ref(0);
+    const continueWithSettings = ref(localStorage.getItem("continueWithRestartSettings") || props.continuedWithSettings);
 
     let parsedAdditionalInfo = "";
     let i = 0;
@@ -101,13 +104,17 @@
             enterHeld = true;
         } else if (e.key == "Control") {
             controlHeld = true;
-        } else if (e.key == "Escape" && !props.pausedVariant) {
-            emit("cancel");
+        } else if (e.key == "Escape") {
+            if (props.pausedVariant) {
+                emit("continue", continueWithSettings.value && (props.data.speed != speed.value || props.data.skipLyricless != skipLyricless.value || JSON.stringify(props.data.lyricsSettings) != JSON.stringify(lyricsSettings.value) || props.data.wordLengthLimit != wordLengthLimit.value || props.data.autospace != autospace.value) ? buildNewData() : {});
+            } else {
+                emit("cancel");
+            }
         }
 
         if (controlHeld && enterHeld) {
             if (props.pausedVariant) {
-                emit("continue");
+                emit("continue", continueWithSettings.value && (props.data.speed != speed.value || props.data.skipLyricless != skipLyricless.value || JSON.stringify(props.data.lyricsSettings) != JSON.stringify(lyricsSettings.value) || props.data.wordLengthLimit != wordLengthLimit.value || props.data.autospace != autospace.value) ? buildNewData() : {});
             } else {
                 emit("setData", buildNewData());
                 router.push("/play");
@@ -131,8 +138,9 @@
                     startTime: startTime.value,
                     skipLyricless: skipLyricless.value,
                     lyricsSettings: lyricsSettings.value,
-                    wordLengthLimit: wordLengthLimit,
-                    autospace: autospace.value };
+                    wordLengthLimit: wordLengthLimit.value,
+                    autospace: autospace.value,
+                    backgroundImage: props.data.backgroundImage == "default" ? defaultBackground : props.data.backgroundImage };
     }
 
     function redirectAndSetData(link, data) {
@@ -222,7 +230,7 @@
                 <button
                     to="/play"
                     class="button not-hover:border-pink-500 text-pink-500 bg-white px-8 text-xl"
-                    @click="$emit('continue')"
+                    @click="$emit('continue', continueWithSettings && (props.data.speed != speed || props.data.skipLyricless != skipLyricless || JSON.stringify(props.data.lyricsSettings) != JSON.stringify(lyricsSettings) || props.data.wordLengthLimit != wordLengthLimit || props.data.autospace != autospace) ? buildNewData() : {})"
                 >
                     Continue
                 </button>
@@ -235,8 +243,24 @@
                 </button>
             </div>
 
+            <p 
+                v-if="props.continuedWithSettings"
+                class="mt-3"
+            >You've continued with restart settings, highscores are disabled.</p>
+            <label 
+                v-else-if="pausedVariant && (props.data.speed != speed || props.data.skipLyricless != skipLyricless || JSON.stringify(props.data.lyricsSettings) != JSON.stringify(lyricsSettings) || props.data.wordLengthLimit != wordLengthLimit || props.data.autospace != autospace)"
+                class="cursor-pointer mt-3"
+            >
+                <input 
+                    class="mr-1 cursor-pointer disabled:cursor-not-allowed"
+                    type="checkbox"
+                    v-model="continueWithSettings"
+                >
+                Continue with restart settings (disables highscores)
+            </label>
+
             <p
-                v-if="highscore"
+                v-if="highscore && !props.continuedWithSettings"
                 class="mt-3"
             >
                 Highscore on those settings: 
@@ -245,7 +269,7 @@
 
             <p
                 v-if="parsedAdditionalInfo"
-                :class="highscore ? 'text-center mt-1 whitespace-pre-wrap' : 'text-center mt-3 whitespace-pre-wrap'" 
+                :class="highscore || props.continuedWithSettings ? 'text-center mt-1 whitespace-pre-wrap' : 'text-center mt-3 whitespace-pre-wrap'" 
                 v-html="parsedAdditionalInfo"
             ></p>
 

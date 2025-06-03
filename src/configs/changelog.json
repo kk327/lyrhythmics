@@ -1,5 +1,17 @@
 { 
     "releases": [{
+            "version": "1.3.0",
+            "date": "June 3rd, 2025",
+            "changes": [
+                "Added an option to continue playing with the selected restart settings, highscores are disabled with it. Also added a setting to enable it by default.",
+                "Automap now automatically adds parts without lyrics if you don't specify any and use a file which has lyricless parts that are at least 8 seconds long.",
+                "Now when you export/download a map that uses the default background image, the background image data will not be saved in the file.",
+                "If a lyricless part which is added to automap in text mode starts at 0:00, it no longer is shortened by 1 second at the start.",
+                "Updated the automap section of the about page to mention the new automap parts without lyrics from file being 2 seconds shorter too.",
+                "Fixed the information on the song list page always being moved up like if the fullscreen button was there in the version on my website."
+            ]
+        },
+        {
             "version": "1.2.2",
             "date": "June 1st, 2025",
             "changes": [

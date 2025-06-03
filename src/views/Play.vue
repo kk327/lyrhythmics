@@ -15,7 +15,10 @@
 
     const router = useRouter();
 
-    const lyrics = ref(props.data.lyrics.map((e) => e.map((e2) => { return props.data.lyricsSettings.capitalization ? e2 : { word: e2.word.toLowerCase(), delay: e2.delay }}).map((e2) => { return props.data.lyricsSettings.accentLetters ? e2 : { word: e2.word.replace(/ł/g, "l").replace(/Ł/g, "L").replace(/Ø/g, "O").replace(/ø/g, "o").normalize("NFKD").replace(/\p{Diacritic}/gu, ""), delay: e2.delay } }).map((e2) => { return props.data.lyricsSettings.specialCharacters ? e2 : { word: e2.word.replace(/\P{Letter}/gu, ""), delay: e2.delay } }).filter((e2) => e2.word).map((e2) => props.data.wordLengthLimit ? { ...e2, word: e2.word.slice(0, props.data.wordLengthLimit) } : e2 )).filter((e) => e.length));
+    const lyrics = ref(props.data.lyrics.map((e) => e.map((e2) => { return props.data.lyricsSettings.capitalization ? e2 : { word: e2.word.toLowerCase(), delay: e2.delay }}).map((e2) => { return props.data.lyricsSettings.accentLetters ? e2 : { word: e2.word.replace(/ł/g, "l").replace(/Ł/g, "L").replace(/Ø/g, "O").replace(/ø/g, "o").normalize("NFKD").replace(/\p{Diacritic}/gu, ""), delay: e2.delay } }).map((e2) => { return props.data.lyricsSettings.specialCharacters ? e2 : { word: e2.word.replace(/\P{Letter}/gu, ""), delay: e2.delay } }).filter((e2) => e2.word).map((e2) => props.data.wordLengthLimit ? { ...e2, word: e2.word.slice(0, props.data.wordLengthLimit) } : e2 )));
+    let unfilteredLyrics = lyrics.value;
+    lyrics.value = lyrics.value.filter((e) => e.length);
+
     const finished = ref(false);
     const finalScore = ref(0);
 
@@ -43,7 +46,10 @@
 
     const time = ref(startTime.value / speed.value);
     let timeAtStart = 0;
+    
     let skippedTime = 0;
+    let continueOffset = 0;
+
     const lyricsId = ref(lyrics.value.findIndex((e) => e.some((e2) => e2.delay >= startTime.value)));
     const checkedWord = ref(lyrics.value[lyricsId.value].findIndex((e) => e.delay >= startTime.value));
     const inputLyrics = ref([]);
@@ -97,6 +103,7 @@
     const saveHighscores = ref(localStorage.getItem("saveHighscores"));
     const highscoreKey = props.data.id + "-" + speed.value + "-" + startTime.value + "-" + props.data.skipLyricless + "-" + lyricsSettingList.map((e) => props.data.lyricsSettings[e] ? '1' : '0').join("") + (props.data.wordLengthLimit ? "-wll" + props.data.wordLengthLimit : "");
     const highscore = ref(localStorage.getItem(highscoreKey) ? localStorage.getItem(highscoreKey) : -1);
+    const continuedWithSettings = ref(false);
 
     const startWord = lyrics.value.filter((e, idx) => idx < lyricsId.value).reduce((sum, e) => sum + e.length, 0) + checkedWord.value;
     const sizeRefresh = ref(false);
@@ -172,7 +179,7 @@
                 emit("quitPlaytesting");
             }
         } else {
-            if (selectedBeforePause) {
+            if (selectedBeforePause && !Object.keys(inputs).map((key) => inputs[key]).some((e) => e == document.activeElement)) {
                 selectedBeforePause.focus();
             }
             
@@ -207,14 +214,14 @@
 
     function play(e) {
         if (e.key == "Escape") {
-            paused.value = !paused.value;
+            paused.value = true;
             return;
         } else if (paused.value) {
             return;
         }
 
         song.playbackRate = speed.value;
-        song.currentTime = startTime.value;
+        song.currentTime = song.currentTime ? song.currentTime : startTime.value;
         song.preservesPitch = !localStorage.getItem("changeThePitch");
         song.play();
 
@@ -240,12 +247,12 @@
                 return;
             }
 
-            time.value = (Date.now() - timeAtStart) / 1000 + startTime.value / speed.value + skippedTime;
+            time.value = (Date.now() - timeAtStart) / 1000 + startTime.value / speed.value + skippedTime + continueOffset;
             songPosition.value = song.currentTime / speed.value;
             window.scrollTo({ top: Math.round(window.innerHeight * time.value / 3.5)});
             setBackgroundFilters();
 
-            if (partsWithoutLyrics.length && time.value >= partsWithoutLyrics[0].start / speed.value) {
+            if (partsWithoutLyrics.length && time.value >= partsWithoutLyrics[0].start / speed.value) {                
                 skippedTime += partsWithoutLyrics[0].end / speed.value - time.value;
                 song.currentTime += (partsWithoutLyrics[0].end / speed.value - time.value) * speed.value;
                 partsWithoutLyrics.shift();
@@ -315,7 +322,7 @@
                             finalScore.value = Math.round(score.value / (lyrics.value.filter((e, idx) => idx < lyricsId.value).reduce((sum, e) => sum + e.length, 0) + checkedWord.value - startWord) * 10000) / 100;
                             document.activeElement.blur();
 
-                            if (finalScore.value > highscore.value && saveHighscores.value) {
+                            if (!continuedWithSettings.value && finalScore.value > highscore.value && saveHighscores.value) {
                                 localStorage.setItem(highscoreKey, finalScore.value);
                                 if (localStorage.getItem("highscores")) {
                                     localStorage.setItem("highscores", JSON.stringify([ ...JSON.parse(localStorage.getItem("highscores")), highscoreKey ]));
@@ -365,7 +372,7 @@
 
     function playingKeydown(e) {
         if (e.key == "Escape") {
-            paused.value = !paused.value;
+            paused.value = true;
         } else if (!paused.value) {
             if (e.key == " " && Object.keys(inputs).map((key) => inputs[key]).findIndex((e) => e == document.activeElement) != Object.keys(inputs).length - 1) {
                 inputs[Object.keys(inputs).map((key) => inputs[key]).findIndex((e) => e == document.activeElement) + 1].focus();
@@ -429,7 +436,7 @@
     }
 
     function quit() {
-        emit("setData", {});
+        emit("setData", {}, false);
         router.push("/");
     }
 
@@ -443,6 +450,40 @@
 
     function aOrAnNumber(number) {
         return number[0] == "8" || (number.match(/^(11|18)/) && (number.length - 2) % 3 == 0) ? "an " : "a ";
+    }
+
+    function unpause(data) {
+        if (Object.keys(data).length) {
+            lyrics.value = data.lyrics.map((e, idx) => idx <= lyricsId.value ? unfilteredLyrics[idx] : e.map((e2) => { return data.lyricsSettings.capitalization ? e2 : { word: e2.word.toLowerCase(), delay: e2.delay }}).map((e2) => { return data.lyricsSettings.accentLetters ? e2 : { word: e2.word.replace(/ł/g, "l").replace(/Ł/g, "L").replace(/Ø/g, "O").replace(/ø/g, "o").normalize("NFKD").replace(/\p{Diacritic}/gu, ""), delay: e2.delay } }).map((e2) => { return data.lyricsSettings.specialCharacters ? e2 : { word: e2.word.replace(/\P{Letter}/gu, ""), delay: e2.delay } }).filter((e2) => e2.word).map((e2) => data.wordLengthLimit ? { ...e2, word: e2.word.slice(0, data.wordLengthLimit) } : e2 ));
+            unfilteredLyrics = lyrics.value;
+            lyrics.value = lyrics.value.filter((e) => e.length);
+
+            if (data.autospace) {
+                inputs[checkedWord.value].focus();
+            }
+
+            continueOffset -= (time.value - startTime.value / speed.value) - (time.value - startTime.value / speed.value) * speed.value / data.speed;
+            speed.value = data.speed;
+            song.playbackRate = speed.value
+            time.value = (timeAtStart ? (Date.now() - timeAtStart) / 1000 : 0) + startTime.value / speed.value + skippedTime + continueOffset;
+
+            if (data.skipLyricless && !props.data.skipLyricless) {
+                partsWithoutLyrics = props.data.partsWithoutLyrics.filter((e) => e.end / speed.value > time.value);
+                if (timeAtStart == 0 && partsWithoutLyrics.length && time.value >= partsWithoutLyrics[0].start / speed.value) {
+                    skippedTime += partsWithoutLyrics[0].end / speed.value - time.value;
+                    song.currentTime = partsWithoutLyrics[0].end;
+                    partsWithoutLyrics.shift();   
+                    time.value = startTime.value / speed.value + skippedTime + continueOffset;
+                    window.scrollTo({ top: Math.round(window.innerHeight * time.value / 3.5)});
+                    setBackgroundFilters();
+                }
+            } else if (!data.skipLyricless && props.data.skipLyricless) {
+                partsWithoutLyrics = [];
+            }
+            emit("setData", data, false);
+            continuedWithSettings.value = true;
+        }
+        paused.value = false;
     }
 </script>
 
@@ -556,8 +597,9 @@
             <MapCustomization 
                 :pausedVariant="true"
                 :data="data"
-                @continue="paused = false"
-                @setData="(data) => $emit('setData', data)"
+                :continuedWithSettings="continuedWithSettings"
+                @continue="(data) => unpause(data)"
+                @setData="(data) => $emit('setData', data, true)"
             />
         </div>
 
@@ -574,14 +616,14 @@
                 <p class="mb-2">The map ended. {{ checkedWord == 0 ? 'The lyrics customization settings that you chose removed all of its lyrics' + (lyrics.length != 1 ? ' past your start time.' : '.') : '' }}</p>
 
                 <p
-                    v-if="checkedWord != 0" 
+                    v-if="checkedWord != 0 && !continuedWithSettings" 
                     :class="finalScore > highscore ? 'font-bold' : ''"
                 >
                     {{ finalScore > highscore ? "New highscore!" : "Highscore: " }}
                     <b v-if="finalScore <= highscore">{{ highscore }}%</b>
                 </p>
 
-                <table class="mt-2">
+                <table :class="continuedWithSettings ? '' : 'mt-2'">
                     <thead>
                         <tr>
                             <th class="border-t-0 border-l-0"></th>
@@ -624,7 +666,7 @@
                 </table>
 
                 <p 
-                    v-if="!saveHighscores"
+                    v-if="!saveHighscores && !continuedWithSettings"
                     class="max-w-150 mt-2"
                 >You have saving highscores disabled, you can enable it by pressing the button below. The highscores will be saved in your device's local storage.</p>
 
@@ -645,7 +687,7 @@
                     </button>
 
                     <button
-                        v-if="!saveHighscores"
+                        v-if="!saveHighscores && !continuedWithSettings"
                         class="button h-fit"
                         @click="enableHighscores()"
                     >
@@ -654,7 +696,7 @@
 
                     <button
                         class="button h-fit"
-                        @click="$emit('setData', data)"
+                        @click="$emit('setData', data, true)"
                     >
                         Play again
                     </button>

@@ -631,7 +631,7 @@
             mapper: mapper.value,
             additionalInfo: additionalInfo.value,
             song: song.value,
-            backgroundImage: backgroundImage.value,
+            backgroundImage: backgroundImage.value == defaultBackground ? "default" : backgroundImage.value,
             backgroundFilters: backgroundFilters.value,
             lyrics: lyrics.value,
             partsWithoutLyrics: partsWithoutLyrics.value,

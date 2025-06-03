@@ -8,6 +8,7 @@
     const lyrics = ref("");
     const lyricsType = ref("text");
     const parsedLyrics = ref([]);
+    let calculatedLyriclessParts;
     const lyricsOffset = ref(0);
 
     const hueRotate = ref(0);
@@ -114,6 +115,7 @@
                     verse: e.slice(1).join(" ").trim().replace(/<.*?>/g, "")
                 }});
             }
+            calculatedLyriclessParts = [{ end: 0 }, ...parsedLyrics.value].map((e, idx) => idx != parsedLyrics.value.length && parsedLyrics.value[idx].start - e.end >= 8 ? { start: e.end == 0 ? 0 : e.end + 1, end: parsedLyrics.value[idx].start - 1 } : "" ).filter(e => e);
         } catch {
             parsedLyrics.value = [];
         }
@@ -268,6 +270,12 @@
         :disabledInfo="!songDuration ? 'Add a song first.' : ''"
         @add="(start, end) => partsWithoutLyrics = [ ...partsWithoutLyrics, { start: start, end: end }].sort((a,b) => a.start - b.start)"
     />
+    <p
+        v-if="lyricsType != 'text'"
+        class="mt-1 text-center max-w-150"
+    >
+        If you don't specify any, parts without lyrics in the file that are at least 8 seconds long will be added, shorter by one second from each side to provide a transition.
+    </p>
 
     <label class="flex flex-col items-center">
         <h2 class="font-bold text-xl mt-4 mb-2">Background hue-rotate:</h2>
@@ -307,10 +315,14 @@
                 mapper: 'Automap' + (lyricsType == 'lrc' && lyrics.match(/(?<=\[by:).*(?=\])/) ? ' (.lrc by ' + lyrics.match(/(?<=\[by:).*(?=\])/)[0].trim() + ')' : ''),
                 additionalInfo: '',
                 song: song,
-                backgroundImage: backgroundImage,
+                backgroundImage: backgroundImage == defaultBackground ? 'default' : backgroundImage,
                 backgroundFilters: [{ start: 0, hue: hueRotate, brightness: 100, transitionDuration: 0}],
                 lyrics: calculateLyrics(),
-                partsWithoutLyrics: lyricsType == 'text' ? partsWithoutLyrics.map((e) => { return { start: e.start + 1, end: e.end - 1 }}).filter((e) => e.end > e.start) : partsWithoutLyrics,
+                partsWithoutLyrics: lyricsType == 'text' ? 
+                                        partsWithoutLyrics.map((e) => { return { start: e.start == 0 ? 0 : e.start + 1, end: e.end - 1 }}).filter((e) => e.end > e.start) 
+                                        : partsWithoutLyrics.length ?
+                                            partsWithoutLyrics
+                                            : calculatedLyriclessParts,
                 forceskip: false,
                 downloadButton: true,
                 automapSongSkipping: lyricsType == 'text',

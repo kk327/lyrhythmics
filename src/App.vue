@@ -54,7 +54,7 @@
     <RouterView
         v-else-if="show"
         :data="data"
-        @setData="(newData) => restart(newData)"
+        @setData="(newData, doARestart) => doARestart ? restart(newData) : data = newData"
     />
 
     <button
