@@ -48,7 +48,7 @@
         "acceptMobileWarning",
         "cacheMap",
         "clearCache",
-        "toggleFullscreenButton"
+        "settingsChanged"
     ]);
 
     const router = useRouter();
@@ -115,6 +115,7 @@
         { codeName: "additionalWordCorrectnessFeedback", displayName: "Additional word correctness feedback", clarification: "more information in the score system section of the about page" },
         { codeName: "changeThePitch", displayName: "Change the pitch along with speed", clarification: "creates a reverb when slowed, makes it sound like nightcore when sped up" },
         { codeName: "disableBackgroundLyrics", displayName: "Disable main menu background lyrics", clarification: "saves resources if you keep the game open in the backround" },
+        { codeName: "reduceTransparency", displayName: "Reduce background transparency", clarification: "improves readability, applies to small elements like inputs as well" },
         { codeName: "continueWithRestartSettings", displayName: "Continue with restart settings by default" },
         { codeName: "nonDecimalCurrentTime", displayName: "Non-decimal current time", clarification: "reduces the motion of the time counter" },
         { codeName: "disableCaching", displayName: "Disable storing official maps in RAM", clarification: "by default after you load a map it's saved for later" },
@@ -174,8 +175,8 @@
         setTimeInterval();
     });
 
-    watch(() => settings.hideFullscreenButton, () => {
-        emit("toggleFullscreenButton");
+    watch(() => settings.hideFullscreenButton + settings.reduceTransparency, () => {
+        emit("settingsChanged", { hideFullscreenButton: settings.hideFullscreenButton, reduceTransparency: settings.reduceTransparency });
     });
 
     watchEffect(() => {
@@ -486,7 +487,7 @@
             </button>
         </nav>
 
-        <p :class="config.enableFullscreenButton && !settings.hideFullscreenButton && !fullscreen ? 'fixed text-white bottom-15 left-2 bg-black/40 py-1 px-2 rounded-xl backdrop-blur-md z-7 w-193 max-w-[calc(100%-750px)] min-w-50' : 'fixed text-white bottom-2 left-2 bg-black/40 py-1 px-2 rounded-xl backdrop-blur-md z-7 w-193 max-w-[calc(100%-750px)] min-w-50'">
+        <p :class="config.enableFullscreenButton && !settings.hideFullscreenButton && !fullscreen ? 'fixed text-white bottom-15 left-2 bg-black/[var(--bg-40)] py-1 px-2 rounded-xl backdrop-blur-md z-7 w-193 max-w-[calc(100%-750px)] min-w-50' : 'fixed text-white bottom-2 left-2 bg-black/[var(--bg-40)] py-1 px-2 rounded-xl backdrop-blur-md z-7 w-193 max-w-[calc(100%-750px)] min-w-50'">
             This is the official list of mapped songs. Only songs with a license that allows using them are here. If you want to play a map with a song that isn't here, you can use the 
             <button
                 class="cursor-pointer text-pink-300 hover:text-pink-500 duration-100"
@@ -522,7 +523,7 @@
         v-if="visibleOverlay || fileLoadError"
         class="fixed left-0 w-screen h-screen flex justify-center items-center text-white z-12"
     >   
-        <div class="fixed w-screen h-screen bg-black/60 backdrop-blur-xs"></div> 
+        <div class="fixed w-screen h-screen bg-black/[var(--bg-60)] backdrop-blur-xs"></div> 
 
         <div 
             v-if="visibleOverlay == 'automap'"
@@ -655,7 +656,7 @@
                 v-if="highscoreResetWarning"
                 class="fixed left-0 top-0 w-screen h-screen flex justify-center items-center text-white z-14"
             >   
-                <div class="fixed w-screen h-screen bg-black/66 backdrop-blur-xs"></div>
+                <div class="fixed w-screen h-screen bg-black/[var(--bg-60)] backdrop-blur-xs"></div>
                 
                 <div class="flex flex-col items-center max-h-full w-full py-2 overflow-y-auto z-13 text-center"> 
                     <h2 class="font-bold text-lg z-15">Warning!</h2>
@@ -782,7 +783,7 @@
         </div>
     </div>
 
-    <footer class="fixed text-neutral-400 bottom-2 right-2 bg-black/40 py-1 px-2 rounded-xl backdrop-blur-md flex gap-1.5 z-5 font-bold">
+    <footer class="fixed text-neutral-400 bottom-2 right-2 bg-black/[var(--bg-40)] py-1 px-2 rounded-xl backdrop-blur-md flex gap-1.5 z-5 font-bold">
         <a 
             href="https://codeberg.org/k327/lyrhythmics"
             class="text-white hover:text-pink-300 duration-100"
@@ -817,7 +818,7 @@
                     :style="{ width: calculateInputWidth(verse.length), 
                               top: calculateTop(lyric.delay) - calculateTop(time) + 'px' }"
                 >
-                    <span class="bg-black/40 px-4 py-1.25 relative bottom-1 rounded-xl backdrop-blur-md max-w-full">
+                    <span class="bg-black/[var(--bg-40)] px-4 py-1.25 relative bottom-1 rounded-xl backdrop-blur-md max-w-full">
                         {{ lyric.word }}
                     </span>
                 </p>

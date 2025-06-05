@@ -1,5 +1,14 @@
 { 
     "releases": [{
+            "version": "1.3.1",
+            "date": "June 5th, 2025",
+            "changes": [
+                "Added a setting to reduce background transparency which makes it easier to read the text. It also adds an outline to the texts in inputs in the playing view to make them readable when the inputs have bright non-transparent background colors.",
+                "The highscore disable screen now has the same background opacity as all the other screens.",
+                "Perfect Shade - Reaching High is now saved in constant bitrate fixing slight desync issues, the timings of verses have also been adapted to this."
+            ]
+        },
+        {
             "version": "1.3.0",
             "date": "June 3rd, 2025",
             "changes": [

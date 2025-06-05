@@ -739,7 +739,7 @@
         v-if="quitWarningVisible || removedVerse != -1 || editedVerse != -1"
         class="fixed left-0 w-screen h-screen flex justify-center items-center text-white z-10"
     >
-        <div class="fixed w-screen h-screen bg-black/60 backdrop-blur-xs"></div> 
+        <div class="fixed w-screen h-screen bg-black/[var(--bg-60)] backdrop-blur-xs"></div> 
 
         <div 
             v-if="quitWarningVisible"
@@ -838,7 +838,7 @@
     >
     <div 
         v-if="settingsVisible && !playtesting"
-        class="fixed w-screen h-screen bg-black/60 z-[-9] backdrop-blur-xs"
+        class="fixed w-screen h-screen bg-black/[var(--bg-60)] z-[-9] backdrop-blur-xs"
     ></div>
 
     <!-- top left buttons -->
@@ -1229,7 +1229,7 @@
                               top: calculateTop(lyric.delay) + 'px' }"
                 >
                     <span 
-                        class="bg-black/40 px-4 py-1.25 relative bottom-1 rounded-xl backdrop-blur-md max-w-full"
+                        class="bg-black/[var(--bg-40)] px-4 py-1.25 relative bottom-1 rounded-xl backdrop-blur-md max-w-full"
                         :style="{ cursor: movedWord.verse == verseId && movedWord.id == lyricId ? 'grabbing' : 'grab' }"
                         @mousedown="movedWord = { verse: verseId, id: lyricId }"
                     >

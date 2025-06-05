@@ -101,7 +101,7 @@
 </script>
 
 <template>
-    <div class="fixed w-screen h-screen bg-black/60 z-11 backdrop-blur-xs"></div>
+    <div class="fixed w-screen h-screen bg-black/[var(--bg-60)] z-11 backdrop-blur-xs"></div>
     <div class="fixed w-screen h-screen z-12 flex justify-center items-center flex-col gap-3">
         <div class="flex flex-col h-full justify-center gap-3">
             <textarea 

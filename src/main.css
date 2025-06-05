@@ -2,11 +2,11 @@
 
 @layer base {
     .button {
-        @apply cursor-pointer bg-black/40 border-white/0 border-2 px-4 py-2 rounded-xl backdrop-blur-md text-white font-bold hover:not-disabled:brightness-125 hover:not-disabled:border-white duration-200 disabled:cursor-not-allowed disabled:text-neutral-400;
+        @apply cursor-pointer bg-black/[var(--bg-40)] border-white/0 border-2 px-4 py-2 rounded-xl backdrop-blur-md text-white font-bold hover:not-disabled:brightness-125 hover:not-disabled:border-white duration-200 disabled:cursor-not-allowed disabled:text-neutral-400;
     }
 
     .input {
-        @apply bg-black/40 border-white/0 border-2 px-4 py-1 rounded-xl backdrop-blur-md text-white disabled:cursor-not-allowed disabled:text-neutral-400;
+        @apply bg-black/[var(--bg-40)] border-white/0 border-2 px-4 py-1 rounded-xl backdrop-blur-md text-white disabled:cursor-not-allowed disabled:text-neutral-400;
     }
 
     * {

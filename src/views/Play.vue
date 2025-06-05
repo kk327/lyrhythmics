@@ -72,6 +72,7 @@
     let previouslyInsideLyricless = false;
     const targetFPS = localStorage.getItem("targetFPS") ? localStorage.getItem("targetFPS") : 60;
     const nonDecimalCurrentTime = localStorage.getItem("nonDecimalCurrentTime");
+    const reduceTransparency = localStorage.getItem("reduceTransparency");
 
     const wordStatistics = ref({
         X: 0,
@@ -87,16 +88,16 @@
 
     const additionalWordCorrectnessFeedback = ref(localStorage.getItem("additionalWordCorrectnessFeedback"));
     const scoringData = [
-        { code: "", color: "#00000066", score: 0 },
-        { code: "X", color: "#ff000066", score: 0 },
-        { code: "Vv", color: "#00600f66", score: 0.333 },
-        { code: "Ve", color: "#00b11b66", score: 0.75 },
-        { code: "V", color: "#38ff5666", score: 1 },
-        { code: "Vl", color: "#00600f66", score: 0.333 },
-        { code: "~v", color: "#65620066", score: 0.08325 },
-        { code: "~e", color: "#aeb00066", score: 0.1875 },
-        { code: "~", color: "#fffe5466", score: 0.25 },
-        { code: "~l", color: "#65620066", score: 0.08325 },
+        { code: "", color: "#000000", score: 0 },
+        { code: "X", color: "#ff0000", score: 0 },
+        { code: "Vv", color: "#00600f", score: 0.333 },
+        { code: "Ve", color: "#00b11b", score: 0.75 },
+        { code: "V", color: "#38ff56", score: 1 },
+        { code: "Vl", color: "#00600f", score: 0.333 },
+        { code: "~v", color: "#656200", score: 0.08325 },
+        { code: "~e", color: "#aeb000", score: 0.1875 },
+        { code: "~", color: "#fffe54", score: 0.25 },
+        { code: "~l", color: "#656200", score: 0.08325 },
     ];
 
     const lyricsSettingList = ["capitalization", "accentLetters", "specialCharacters"];
@@ -518,14 +519,14 @@
             class="flex z-1 backdrop-blur-md fixed"
         >
             <div 
-                class="flex items-center justify-end"
+                :class="reduceTransparency ? 'flex items-center justify-end [-webkit-text-stroke:0.75px_black] font-bold' : 'flex items-center justify-end'"
                 v-for="lyric, idx in lyrics[lyricsId]"
             >
                 <input 
                     class="p-2 pt-1.5 text-center focus:border-white focus:backdrop-brightness-175 outline-0 border-t-2 border-white/0 placeholder-neutral-400"
                     v-model="inputLyrics[idx]"
                     :style="{ width: calculateInputWidth(lyrics[lyricsId].length),
-                              backgroundColor: scoringData.filter((e) => (!e.code && !correctnessStates[idx]) || e.code == correctnessStates[idx])[0].color }"
+                              backgroundColor: scoringData.filter((e) => (!e.code && !correctnessStates[idx]) || e.code == correctnessStates[idx])[0].color + (reduceTransparency ? 'E6' : '66') }"
                     :placeholder="lyric.word"
                     :tabindex="paused || finished ? -1 : 0"
                     type="text"
@@ -545,7 +546,7 @@
             v-else-if="time == startTime / speed"
             class="fixed top-1.5 w-full flex justify-center"
         >
-            <p class="bg-black/40 px-4 py-1.25 rounded-xl backdrop-blur-md max-w-[calc(100vw-375px)] text-center">
+            <p class="bg-black/[var(--bg-40)] px-4 py-1.25 rounded-xl backdrop-blur-md max-w-[calc(100vw-375px)] text-center">
                 Press any key to start. {{ 
                     (startTime == 0 ? "The map starts with " + (props.data.partsWithoutLyrics.length && props.data.partsWithoutLyrics[0].start == 0 ? aOrAnNumber(Math.round(data.partsWithoutLyrics[0].end / speed).toString()) + Math.round(data.partsWithoutLyrics[0].end / speed) + " second" + (Math.round(props.data.partsWithoutLyrics[0].end / speed) == 1 ? "" : "s") + " long" : aOrAnNumber(Math.round(lyrics[0][0].delay / speed - 3.5).toString()) + Math.round(lyrics[0][0].delay / speed - 3.5) + " second" + (Math.round(lyrics[0][0].delay / speed - 3.5) == 1 ? "" : "s") + " long unmarked") + " lyricless part" 
                     : "You started in a" + (data.partsWithoutLyrics.filter((e) => e.start <= time && e.end > time).length ? " lyricless part. It ends in " + Math.round(data.partsWithoutLyrics.filter((e) => e.start <= time && e.end > time)[0].end / speed - time) + " second" + (Math.round(data.partsWithoutLyrics.filter((e) => e.start <= time && e.end > time)[0].end / speed - time) == 1 ? "" : "s") : "n unmarked lyricless part. It ends in " + Math.round(lyrics.filter(e => e[0].delay / speed > time)[0][0].delay / speed - 3.5 - time) + " second" + (Math.round(lyrics.filter(e => e[0].delay / speed > time)[0][0].delay / speed - 3.5 - time) == 1 ? "" : "s"))) 
@@ -566,7 +567,7 @@
                     :style="{ width: calculateInputWidth(verse.length), 
                               top: calculateTop(lyric.delay) + 'px' }"
                 >
-                    <span class="bg-black/40 px-4 py-1.25 relative bottom-1 rounded-xl backdrop-blur-md max-w-full">
+                    <span class="bg-black/[var(--bg-40)] px-4 py-1.25 relative bottom-1 rounded-xl backdrop-blur-md max-w-full">
                         {{ lyric.word }}
                     </span>
                 </p>
@@ -574,7 +575,7 @@
         </div>
         
         <div 
-            class="bg-black/40 mr-5 px-4 py-2 rounded-xl flex items-center flex-col z-1 backdrop-blur-md fixed"
+            class="bg-black/[var(--bg-40)] mr-5 px-4 py-2 rounded-xl flex items-center flex-col z-1 backdrop-blur-md fixed"
             :style="{ top: data.playtesting ? 
                             '64px'
                             : isInsideLyricless() ?
@@ -607,7 +608,7 @@
             v-if="finished"
             class="fixed left-0 w-screen h-screen flex justify-center items-center text-white z-10 text-center"
         >
-            <div class="fixed w-screen h-screen bg-black/60 backdrop-blur-xs"></div> 
+            <div class="fixed w-screen h-screen bg-black/[var(--bg-60)] backdrop-blur-xs"></div> 
             <div class="flex flex-col items-center max-h-full w-full py-2 overflow-y-auto z-11">
                 <PinkHeader 
                     :text="'Score: ' + (finalScore == -1 ? '??' : finalScore) + '%'" 
