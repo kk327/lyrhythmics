@@ -172,7 +172,7 @@
     <label class="flex flex-col items-center">
         <h2 class="font-bold text-xl mb-2">Lyrics:</h2>
         <textarea 
-            class="bg-white p-2 rounded-xl w-133 h-50 text-center text-black"
+            class="bg-white p-2 rounded-xl w-133 max-w-[calc(100vw-16px)] h-50 text-center text-black"
             v-model="lyrics"
             @change="lyricsType == 'text' ? {} : parseLyrics()"
         ></textarea>
@@ -209,7 +209,7 @@
             .lrc
         </label>
     </div>
-    <label class="mt-2">
+    <label class="mt-2 text-center">
         From a .srt, .vtt or .lrc file:
         <input 
             class="button py-1 font-normal ml-1 mb-1.5"

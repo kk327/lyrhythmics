@@ -1,5 +1,17 @@
 { 
     "releases": [{
+            "version": "1.4.0",
+            "date": "June 10th, 2025",
+            "changes": [
+                "Made it so you can go to the next verse if the last word of the current one is being sang and the next verse is visible on the screen.",
+                "Adapted the game for mobile devices, excluding the editor which would be hard to adapt.",
+                "The right margin of the score and time panel that's in the top right corner when playing is now the same as the top one.",
+                "Added information about going to the next verse to the about page.",
+                "Moved the mobile warning screen to when you try to open the editor on mobile and made it just say that the editor doesn't work well on mobile.",
+                "The restart button in the pause menu normally has a right margin to make the middle button more at the center, now if the download button is there it no longer has it."
+            ]
+        },
+        {
             "version": "1.3.1",
             "date": "June 5th, 2025",
             "changes": [

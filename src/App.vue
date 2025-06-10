@@ -6,7 +6,6 @@
     const router = useRouter();
     const data = ref({});
     const show = ref(true);
-    const mobileWarningAccepted = ref(false);
     const cachedMaps = ref({});
     const fullscreen = ref(false);
 
@@ -48,10 +47,8 @@
 <template>
     <RouterView
         v-if="router.currentRoute.value.path == '/'"
-        :mobileWarningAccepted="mobileWarningAccepted"
         :cachedMaps="cachedMaps"
         :fullscreen="fullscreen"
-        @acceptMobileWarning="mobileWarningAccepted = true"
         @cacheMap="(idx, mapData) => cachedMaps[idx] = mapData"
         @clearCache="cachedMaps = {}"
         @settingsChanged="(settings) => updateSettings(settings)"

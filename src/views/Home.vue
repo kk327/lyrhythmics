@@ -38,14 +38,12 @@
     import leaves from "@/songSamples/leaves.mp3";
 
     const props = defineProps([
-        "mobileWarningAccepted",
         "cachedMaps",
         "fullscreen"
     ]);
 
     const emit = defineEmits([
         "setData",
-        "acceptMobileWarning",
         "cacheMap",
         "clearCache",
         "settingsChanged"
@@ -88,11 +86,14 @@
 
     const data = ref({});
     const menu = ref("main");
-    const visibleOverlay = ref(navigator.userAgent.match(/Android|iPhone|iPad/) != null && !props.mobileWarningAccepted ? "mobileWarning" : "");
+    const visibleOverlay = ref("");
     const highscoreResetWarning = ref(false);
     const fileLoadError = ref("");
     const forceDefaultBackground = ref(false);
     const fullscreen = ref(props.fullscreen);
+    
+    const thinScreen = ref(!window.matchMedia("(min-width: 40rem)").matches);
+    const mobile = navigator.userAgent.match(/Android|iPhone|iPad/);
 
     const selectedMapData = ref({});
     let mapDownloadAbortController = new AbortController();
@@ -269,6 +270,7 @@
     }
     
     function onResize() {
+        thinScreen.value = !window.matchMedia("(min-width: 40rem)").matches;
         sizeRefresh.value = !sizeRefresh.value;
         setTimeout(() => {
             stopSongSample();
@@ -309,11 +311,6 @@
         visibleOverlay.value = "";
         automapBackgroundImage.value = defaultBackground;
         automapHueRotate.value = 0;
-    }
-
-    function acceptMobileWarning() {
-        emit("acceptMobileWarning");
-        visibleOverlay.value = '';
     }
 
     function removeHighscores() {
@@ -357,7 +354,7 @@
     }
 
     function playSongSample(name) {
-        if (Object.keys(selectedMapData.value).length == 0) {
+        if (Object.keys(selectedMapData.value).length == 0 && !mobile) {
             stopSongSample();
             song.value = new Audio(songSamples[name]);
             song.value.playbackRate = settings.defaultSpeed;
@@ -374,7 +371,10 @@
 </script>   
 
 <template>
-    <div class="absolute left-0 top-0 z-5">
+    <div
+        v-if="!(tabindex && thinScreen)"
+        class="absolute left-0 top-0 z-5 max-w-screen"
+    >
         <div class="relative right-4 bottom-2 bg-pink-500 font-bold text-5xl text-white [text-shadow:0.1em_0.06em_var(--color-violet-900)] skew-x-[-20deg] border-white border-4 border-l-0">
             <div class="border-violet-900 border-4 border-l-0 py-4 pr-8 pl-10">
                 <p class="skew-x-5">Lyrhythmics</p>
@@ -408,11 +408,11 @@
     >
 
     <div 
-        v-if="menu == 'main'"
-        class="fixed w-screen h-screen flex justify-end items-center z-3"
+        v-if="menu == 'main' && !(tabindex && thinScreen)"
+        class="fixed w-screen h-dvh flex justify-end items-center z-3"
     >
         <nav 
-            class="flex flex-col items-end max-h-full w-full gap-4 overflow-x-hidden pb-16 pt-6"
+            class="flex flex-col items-end max-h-full w-full gap-4 overflow-x-hidden pb-12 sm:pb-16 pt-26 sm:pt-6"
             :tabindex="tabindex"
         >
             <PinkButton 
@@ -430,7 +430,7 @@
             <PinkButton
                 text="Map editor"
                 :tabindex="tabindex"
-                @click="router.push('/editor')"
+                @click="mobile ? visibleOverlay = 'mobileWarning' : router.push('/editor')"
             />
 
             <PinkButton 
@@ -454,16 +454,16 @@
     </div>
 
     <div 
-        v-else
-        class="fixed w-screen h-screen flex items-center z-3"
+        v-else-if="!(tabindex && thinScreen)"
+        class="fixed w-screen h-dvh flex flex-col items-center z-3"
     >
         <nav 
-            class="flex flex-col items-end max-h-full gap-4 overflow-x-hidden pb-16 pt-6 w-full z-6"
+            class="flex flex-col items-end max-h-full gap-4 overflow-x-hidden pb-12 sm:pb-16 pt-26 sm:pt-6 w-full z-6"
             :tabindex="tabindex"
         >
             <PinkButton 
-                v-for="map, idx in maps.filter((e) => (commercial && e.commercialAllowed) || !commercial)"
-                class="max-w-175"
+                v-for="map in maps.filter((e) => (commercial && e.commercialAllowed) || !commercial)"
+                class="sm:max-w-175"
                 :text="map.name"
                 :bottomText="map.wpm + ' WPM | ' + (map.length >= 60 ? Math.floor(map.length / 60) + 'm ' : '') + (map.length % 60 != 0 ? Math.round(map.length % 60) + 's' : '') + (map.lyriclessLength ? ' - ' + (map.lyriclessLength >= 60 ? Math.floor(map.lyriclessLength / 60) + 'm ' : '') + (map.lyriclessLength % 60 != 0 ? Math.round(map.lyriclessLength % 60) + 's' : '') : '')"
                 :tabindex="tabindex"
@@ -473,33 +473,33 @@
             />
             
             <button 
-                class="relative left-28"
+                class="relative sm:left-28 w-full sm:w-auto"
                 :tabindex="tabindex"
                 @click="menu = 'main'"
             >
                 <div 
-                    class="cursor-pointer relative bg-white font-bold text-3xl text-violet-900 skew-x-[-20deg] border-white border-3 border-r-0 group hover:scale-[1.33] right-0 hover:right-[20%] hover:my-5 duration-300 z-1"
+                    class="w-full sm:w-auto cursor-pointer relative bg-white font-bold text-3xl text-violet-900 sm:skew-x-[-20deg] border-white border-y-3 border-x-0 sm:border-l-3 right-0 group hover:sm:scale-133 hover:sm:right-[20%] hover:sm:my-5 duration-300 text-center sm:text-right z-1"
                 >
-                    <div class="border-violet-900 border-3 border-r-0 py-1.75 pr-32 pl-6">
-                        <p class="skew-x-5">Back</p>
+                    <div class="border-violet-900 border-y-3 border-x-0 sm:border-l-3 py-1.75 sm:pr-32 sm:pl-6">
+                        <p class="skew-x-[-15deg] sm:skew-x-5">Back</p>
                     </div>
                 </div>
             </button>
-        </nav>
 
-        <p :class="config.enableFullscreenButton && !settings.hideFullscreenButton && !fullscreen ? 'fixed text-white bottom-15 left-2 bg-black/[var(--bg-40)] py-1 px-2 rounded-xl backdrop-blur-md z-7 w-193 max-w-[calc(100%-750px)] min-w-50' : 'fixed text-white bottom-2 left-2 bg-black/[var(--bg-40)] py-1 px-2 rounded-xl backdrop-blur-md z-7 w-193 max-w-[calc(100%-750px)] min-w-50'">
-            This is the official list of mapped songs. Only songs with a license that allows using them are here. If you want to play a map with a song that isn't here, you can use the 
-            <button
-                class="cursor-pointer text-pink-300 hover:text-pink-500 duration-100"
-                :tabindex="tabindex"
-                @click="visibleOverlay = 'automap'"
-            >automap feature</button>. If you want a song to be added to this list, check the 
-            <button
-                class="cursor-pointer text-pink-300 hover:text-pink-500 duration-100"
-                :tabindex="tabindex"
-                @click="visibleOverlay = 'about'"
-            >about page</button> for information. More officially mapped songs coming soon!{{ commercial ? ' You\'re playing a version of this game without songs that forbid commercial use, the regular version has more songs.' : '' }}
-        </p>
+            <aside :class="config.enableFullscreenButton && !settings.hideFullscreenButton && !fullscreen ? 'sm:fixed text-white bottom-15 left-2 bg-black/[var(--bg-40)] py-1 px-2 sm:rounded-xl backdrop-blur-md z-7 w-full sm:w-193 sm:max-w-[calc(100%-750px)] min-w-50 text-center sm:text-left' : 'sm:fixed text-white bottom-2 left-2 bg-black/[var(--bg-40)] py-1 px-2 sm:rounded-xl backdrop-blur-md z-7 w-full sm:w-193 sm:max-w-[calc(100%-750px)] min-w-50 text-center sm:text-left'">
+                This is the official list of mapped songs. Only songs with a license that allows using them are here. If you want to play a map with a song that isn't here, you can use the 
+                <button
+                    class="cursor-pointer text-pink-300 hover:text-pink-500 duration-100"
+                    :tabindex="tabindex"
+                    @click="visibleOverlay = 'automap'"
+                >automap feature</button>. If you want a song to be added to this list, check the 
+                <button
+                    class="cursor-pointer text-pink-300 hover:text-pink-500 duration-100"
+                    :tabindex="tabindex"
+                    @click="visibleOverlay = 'about'"
+                >about page</button> for information. More officially mapped songs coming soon!{{ commercial ? ' You\'re playing a version of this game without songs that forbid commercial use, the regular version has more songs.' : '' }}
+            </aside>
+        </nav>
     </div>
 
     <!-- from file -->
@@ -521,13 +521,13 @@
     <!-- automap, settings, about, changelog, mobile warning, loading map, file load errors -->
     <div
         v-if="visibleOverlay || fileLoadError"
-        class="fixed left-0 w-screen h-screen flex justify-center items-center text-white z-12"
+        class="fixed left-0 w-screen h-dvh flex justify-center items-center text-white z-12"
     >   
-        <div class="fixed w-screen h-screen bg-black/[var(--bg-60)] backdrop-blur-xs"></div> 
+        <div class="fixed w-screen h-dvh bg-black/[var(--bg-60)] backdrop-blur-xs"></div> 
 
         <div 
             v-if="visibleOverlay == 'automap'"
-            class="flex flex-col items-center max-h-full w-full py-2 overflow-y-auto z-13"
+            class="flex flex-col items-center max-h-full w-full p-2 overflow-y-auto z-13"
         >
             <Automap 
                 @hueRotateChanged="(newHueRotate) => automapHueRotate = newHueRotate"
@@ -539,14 +539,14 @@
 
         <div 
             v-else-if="visibleOverlay == 'settings'"
-            class="flex flex-col items-center max-h-full w-full py-2 overflow-y-auto z-13 text-center"
+            class="flex flex-col items-center max-h-full w-full p-2 overflow-y-auto z-13 text-center"
         >
             <PinkHeader 
                 class="mb-[-4px]"
                 text="Settings"
             />
 
-            <div class="flex flex-row items-center mt-5 gap-3">
+            <div class="flex flex-row items-center mt-5 gap-3 max-w-full">
                 <hr class="w-25 border-t-3">
                 <h1 class="font-bold text-2xl">General</h1>
                 <hr class="w-25 border-t-3">
@@ -587,7 +587,7 @@
                 >
             </label>
 
-            <div class="flex flex-row items-center mt-8 gap-3">
+            <div class="flex flex-row items-center mt-8 gap-3 max-w-full">
                 <hr class="w-25 border-t-3">
                 <h1 class="font-bold text-2xl">Default map customization</h1>
                 <hr class="w-25 border-t-3">
@@ -654,25 +654,25 @@
 
             <div
                 v-if="highscoreResetWarning"
-                class="fixed left-0 top-0 w-screen h-screen flex justify-center items-center text-white z-14"
+                class="fixed left-0 top-0 w-screen h-dvh flex justify-center items-center text-white z-14"
             >   
-                <div class="fixed w-screen h-screen bg-black/[var(--bg-60)] backdrop-blur-xs"></div>
+                <div class="fixed w-screen h-dvh bg-black/[var(--bg-60)] backdrop-blur-xs"></div>
                 
-                <div class="flex flex-col items-center max-h-full w-full py-2 overflow-y-auto z-13 text-center"> 
+                <div class="flex flex-col items-center max-h-full w-full p-2 overflow-y-auto z-13 text-center"> 
                     <h2 class="font-bold text-lg z-15">Warning!</h2>
                     <p class="z-15">
                         Disabling saving highscores will remove the highscores that you saved since you enabled it.
                         <br>Are you sure you want to remove them and disable saving highscores?
                     </p>
 
-                    <div class="flex gap-3">
+                    <div class="flex gap-3 mt-2.5">
                         <button
-                            class="button mt-2.5"
+                            class="button"
                             @click="highscoreResetWarning = ''"
                         >Cancel</button>
 
                         <button
-                            class="button mt-2.5"
+                            class="button"
                             @click="removeHighscores()"
                         >Confirm</button>
                     </div>
@@ -682,13 +682,13 @@
 
         <div 
             v-else-if="visibleOverlay == 'about'"
-            class="flex flex-col items-center max-h-full w-full py-2 overflow-y-auto text-center z-13"
+            class="flex flex-col items-center max-h-full w-full p-2 overflow-y-auto text-center z-13"
         >
             <PinkHeader text="About" />
 
             <h2 class="text-xl font-bold mb-1.5">Introduction</h2>
             <p class="max-w-275">
-                Lyrhythmics is a game in which you type the lyrics of songs. It's made by k327, and it's free and open source software. On this page I will describe some aspects of the game that should be explained. First, for fast navigation there usually are keyboard shortcuts, either escape, enter or control + enter. {{ config.enableFullscreenButton ? "Although note that on most browsers pressing escape will also make you leave fullscreen if you're in fullscreen mode, and you will have to press escape again after that." : "" }} Also, you can see the changelog of updates by clicking on the version number in the corner of the menu.
+                Lyrhythmics is a game in which you type the lyrics of songs. It's made by k327, and it's free and open source software. On this page I will describe some aspects of the game that should be explained. First, for fast navigation there usually are keyboard shortcuts, either escape, enter or control + enter. {{ config.enableFullscreenButton ? "Although note that on most browsers pressing escape will also make you leave fullscreen if you're in fullscreen mode, and you will have to press escape again after that." : "" }} Secondly, you can go to the next verse if the second last word of the current one has passed and the next verse is visible. Simply press space while having the last word selected to do so, like you'd do to go to the next word. Although note that if you start typing the first word of that verse before the last one of the previous verse passes, that counts as starting typing early. Also, you can see the changelog of updates by clicking on the version number in the corner of the menu.
             </p>
 
             <h2 class="text-xl font-bold my-1.5">Score system</h2>
@@ -723,7 +723,7 @@
 
         <div 
             v-else-if="visibleOverlay == 'changelog'"
-            class="flex flex-col items-center max-h-full w-full py-2 overflow-y-auto z-13 text-center"
+            class="flex flex-col items-center max-h-full w-full p-2 overflow-y-auto z-13 text-center"
         >
             <PinkHeader text="Changelog" />
 
@@ -744,23 +744,30 @@
 
         <div 
             v-else-if="visibleOverlay == 'mobileWarning'"
-            class="flex flex-col items-center max-h-full w-full py-2 overflow-y-auto z-13"
+            class="flex flex-col items-center max-h-full w-full p-2 overflow-y-auto z-13"
         >
             <PinkHeader text="Warning" />
 
-            <p class="mb-3 max-w-175 text-center px-2">
-                This game is not meant to be played on mobile devices. While I'm not stopping you from doing so, know that you'll get a way worse experience than you would by playing on a regular computer with a keyboard and a big screen, and that pretty much no effort went into adapting this game for mobile devices due to the concept of the game itself not being suitable for them.
+            <p class="max-w-175 text-center px-2">
+                The map editor doesn't work well on mobile, and it'd be hard to adapt it to make it do. And so, it is highly recommended to use it on a regular computer. Do you wish to continue on mobile anyway?
             </p>
 
-            <button
-                class="button"
-                @click="acceptMobileWarning()"
-            >Okay</button>
+            <div class="flex gap-3 mt-2.5">
+                <button
+                    class="button"
+                    @click="visibleOverlay = ''"
+                >Cancel</button>
+                
+                <button
+                    class="button"
+                    @click="router.push('/editor')"
+                >Continue</button>
+            </div>
         </div>
 
         <div 
             v-else-if="visibleOverlay == 'loadingMap'"
-            class="flex flex-col items-center max-h-full w-full py-2 overflow-y-auto z-13"
+            class="flex flex-col items-center max-h-full w-full p-2 overflow-y-auto z-13"
         >
             <PinkHeader text="Loading map..." />
 
@@ -772,7 +779,7 @@
 
         <div 
             v-else-if="fileLoadError"
-            class="flex flex-col items-center max-h-full w-full py-2 overflow-y-auto z-13"
+            class="flex flex-col items-center max-h-full w-full p-2 overflow-y-auto z-13"
         >
             <h2 class="font-bold text-lg">An error occured while loading the map.</h2>
             <p>{{ fileLoadError }}</p>
@@ -783,7 +790,10 @@
         </div>
     </div>
 
-    <footer class="fixed text-neutral-400 bottom-2 right-2 bg-black/[var(--bg-40)] py-1 px-2 rounded-xl backdrop-blur-md flex gap-1.5 z-5 font-bold">
+    <footer 
+        v-if="!(tabindex && thinScreen)"
+        class="fixed text-neutral-400 bottom-2 right-2 bg-black/[var(--bg-40)] py-1 px-2 rounded-xl backdrop-blur-md flex gap-1.5 z-5 font-bold"
+    >
         <a 
             href="https://codeberg.org/k327/lyrhythmics"
             class="text-white hover:text-pink-300 duration-100"
@@ -804,7 +814,7 @@
         >v{{ releases[0].version }}</button>
     </footer>
 
-    <div v-if="!settings.disableBackgroundLyrics && !tabindex">
+    <div v-if="!settings.disableBackgroundLyrics && !tabindex && !thinScreen">
         <div 
             v-for="verse in visibleLyrics"
             class="flex"

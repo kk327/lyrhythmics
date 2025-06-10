@@ -124,20 +124,20 @@
 
 <template>
     <h2 class="font-bold text-xl mt-4 mb-2">Song:</h2>
-    <label>
+    <label class="flex flex-row items-center gap-2 flex-wrap justify-center mb-1.5">
         From file:
         <input 
-            class="button py-1 font-normal ml-1 mb-1.5"
+            class="button py-1 font-normal max-w-[calc(100vw-16px)]"
             type="file"
             accept="audio/*"
             :tabindex="tabindex"
             @change="(e) => loadFromFile(e.target.files[0], false)"
         >
     </label>
-    <label>
+    <label class="flex flex-row items-center gap-2 flex-wrap justify-center">
         From link:
         <input 
-            class="input ml-1"
+            class="input"
             type="text"
             :tabindex="tabindex"
             @change="(e) => song = e.target.value" 
@@ -149,14 +149,14 @@
         class="mt-2"
     >{{ songStatus }}</p>
 
-    <div class="flex gap-3 items-center mt-2">
+    <div class="flex gap-3 flex-wrap justify-center mt-2">
         <div 
             class="flex flex-col items-center font-bold has-disabled:text-neutral-400 has-disabled:cursor-not-allowed"
             :title="!songDuration ? 'Add a song first.' : ''"
         >
             {{ (Math.round(songPosition * 100) / 100).toFixed(2) + "s / " + songDuration }}s
             <input 
-                class="w-100 disabled:cursor-not-allowed"
+                class="w-100 max-w-[calc(100vw-16px)] disabled:cursor-not-allowed"
                 type="range"
                 min="0"
                 step="0.01"
@@ -178,20 +178,20 @@
     </div>
 
     <h2 class="font-bold text-xl mt-4 mb-2">Background image:</h2>
-    <label>
+    <label class="flex flex-row items-center gap-2 flex-wrap justify-center mb-1.5">
         From file:
         <input 
-            class="button py-1 font-normal ml-1 mb-1.5"
+            class="button py-1 font-normal max-w-[calc(100vw-16px)]"
             type="file"
             accept="image/*"
             :tabindex="tabindex"
             @change="(e) => loadFromFile(e.target.files[0], true)"
         >
     </label>
-    <label>
+    <label class="flex flex-row items-center gap-2 flex-wrap justify-center">
         From link:
         <input 
-            class="input ml-1"
+            class="input"
             type="text"
             :tabindex="tabindex"
             @change="(e) => backgroundImage = e.target.value" 

@@ -737,13 +737,13 @@
     <!-- quit to menu warning -->
     <div
         v-if="quitWarningVisible || removedVerse != -1 || editedVerse != -1"
-        class="fixed left-0 w-screen h-screen flex justify-center items-center text-white z-10"
+        class="fixed left-0 w-screen h-dvh flex justify-center items-center text-white z-10"
     >
-        <div class="fixed w-screen h-screen bg-black/[var(--bg-60)] backdrop-blur-xs"></div> 
+        <div class="fixed w-screen h-dvh bg-black/[var(--bg-60)] backdrop-blur-xs"></div> 
 
         <div 
             v-if="quitWarningVisible"
-            class="flex flex-col items-center max-h-full w-full py-2 overflow-y-auto z-11"
+            class="flex flex-col items-center max-h-full w-full p-2 overflow-y-auto z-11 text-center"
         >
             <h2 class="font-bold text-lg">Are you sure you want to quit?</h2>
             <p>Make sure to export the map first if you want to have it saved.</p>
@@ -838,7 +838,7 @@
     >
     <div 
         v-if="settingsVisible && !playtesting"
-        class="fixed w-screen h-screen bg-black/[var(--bg-60)] z-[-9] backdrop-blur-xs"
+        class="fixed w-screen h-dvh bg-black/[var(--bg-60)] z-[-9] backdrop-blur-xs"
     ></div>
 
     <!-- top left buttons -->
@@ -938,9 +938,9 @@
     <!-- settings -->
     <main 
         v-if="settingsVisible && !playtesting"
-        class="flex flex-col items-center w-full min-h-screen text-white pb-4"
+        class="flex flex-col items-center w-full min-h-dvh text-white pb-4 px-2 text-center"
     >
-        <div class="flex flex-row items-center mt-8 gap-3">
+        <div class="flex flex-row items-center mt-8 gap-3 max-w-full">
             <hr class="w-25 border-t-3">
             <h1 class="font-bold text-2xl">Map settings</h1>
             <hr class="w-25 border-t-3">
@@ -1042,7 +1042,7 @@
         <label class="flex items-center flex-col">
             Additional information (can include links):
             <textarea 
-                class="input my-1 w-100 h-20"
+                class="input my-1 w-100 max-w-[calc(100vw-16px)] h-20"
                 type="text"
                 :tabindex="tabindex"
                 v-model="additionalInfo"
@@ -1089,7 +1089,7 @@
             >
         </label>
 
-        <div class="flex flex-row items-center mt-8 gap-3">
+        <div class="flex flex-row items-center mt-8 gap-3 max-w-full">
             <hr class="w-25 border-t-3">
             <h1 class="font-bold text-2xl">Editor/playtesting settings</h1>
             <hr class="w-25 border-t-3">
@@ -1131,7 +1131,7 @@
         </p>
 
         <label 
-            class="text-center has-disabled:text-neutral-400 has-disabled:cursor-not-allowed"
+            class="has-disabled:text-neutral-400 has-disabled:cursor-not-allowed"
             :title="lyrics.length ? '' : 'Add lyrics first.'"
         >
             <h2 class="font-bold text-xl mt-4">Word length limit:</h2>
@@ -1166,7 +1166,7 @@
     <!-- main editor / lyrics mode -->
     <main
         v-else-if="!playtesting && !backgroundFiltersMode"
-        class="flex flex-col items-end min-h-screen text-white"
+        class="flex flex-col items-end min-h-dvh text-white"
         :style="{ height: calculateTop(Math.max(songDuration, lyrics.length ? lyrics[lyrics.length - 1][lyrics[lyrics.length - 1].length - 1].delay : 0)) + windowHeight / 2 + 'px' }"
         @mousemove="(e) => onMouseMove(e.pageY, false)"
         @mousedown="mouseDown = true"
@@ -1332,7 +1332,7 @@
 
     <main
         v-else-if="!playtesting && backgroundFiltersMode"
-        class="flex flex-col items-end min-h-screen text-white"
+        class="flex flex-col items-end min-h-dvh text-white"
         :style="{ height: calculateTop(songDuration) + windowHeight / 2 + 'px'}"
         @mousemove="(e) => onMouseMove(e.pageY, false)"
         @mousedown="mouseDown = true"

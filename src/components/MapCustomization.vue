@@ -158,9 +158,9 @@
 </script>
 
 <template>
-    <div class="fixed w-screen h-screen bg-black/[var(--bg-60)] z-9 backdrop-blur-xs"></div>
-    <div class="fixed w-screen h-screen z-10 flex justify-center items-center text-white">   
-        <div class="flex flex-col items-center max-h-full w-full py-2 overflow-y-auto">
+    <div class="fixed w-screen h-dvh bg-black/[var(--bg-60)] z-9 backdrop-blur-xs"></div>
+    <div class="fixed w-screen h-dvh z-10 flex justify-center items-center text-white">   
+        <div class="flex flex-col items-center max-h-full w-full p-2 overflow-y-auto">
             <h1
                 v-if="pausedVariant"
                 class="font-bold text-2xl mb-2 tracking-wider"
@@ -236,7 +236,7 @@
                 </button>
                 
                 <button
-                    class="button h-fit mr-4"
+                    :class="data.downloadButton ? 'button h-fit' : 'button h-fit sm:mr-4'"
                     @click="$emit('setData', buildNewData())"
                 >
                     Restart
@@ -245,11 +245,11 @@
 
             <p 
                 v-if="props.continuedWithSettings"
-                class="mt-3"
+                class="mt-3 text-center"
             >You've continued with restart settings, highscores are disabled.</p>
             <label 
                 v-else-if="pausedVariant && (props.data.speed != speed || props.data.skipLyricless != skipLyricless || JSON.stringify(props.data.lyricsSettings) != JSON.stringify(lyricsSettings) || props.data.wordLengthLimit != wordLengthLimit || props.data.autospace != autospace)"
-                class="cursor-pointer mt-3"
+                class="cursor-pointer mt-3 text-center"
             >
                 <input 
                     class="mr-1 cursor-pointer disabled:cursor-not-allowed"

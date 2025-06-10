@@ -101,8 +101,8 @@
 </script>
 
 <template>
-    <div class="fixed w-screen h-screen bg-black/[var(--bg-60)] z-11 backdrop-blur-xs"></div>
-    <div class="fixed w-screen h-screen z-12 flex justify-center items-center flex-col gap-3">
+    <div class="fixed w-screen h-dvh bg-black/[var(--bg-60)] z-11 backdrop-blur-xs"></div>
+    <div class="fixed w-screen h-dvh z-12 flex justify-center items-center flex-col gap-3">
         <div class="flex flex-col h-full justify-center gap-3">
             <textarea 
                 class="bg-white p-2 rounded-xl min-w-[66.7vw] w-full h-2/3 text-center resize-none"

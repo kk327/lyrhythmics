@@ -105,6 +105,7 @@
     const highscoreKey = props.data.id + "-" + speed.value + "-" + startTime.value + "-" + props.data.skipLyricless + "-" + lyricsSettingList.map((e) => props.data.lyricsSettings[e] ? '1' : '0').join("") + (props.data.wordLengthLimit ? "-wll" + props.data.wordLengthLimit : "");
     const highscore = ref(localStorage.getItem(highscoreKey) ? localStorage.getItem(highscoreKey) : -1);
     const continuedWithSettings = ref(false);
+    const mobile = navigator.userAgent.match(/Android|iPhone|iPad/);
 
     const startWord = lyrics.value.filter((e, idx) => idx < lyricsId.value).reduce((sum, e) => sum + e.length, 0) + checkedWord.value;
     const sizeRefresh = ref(false);
@@ -112,6 +113,11 @@
     let inputs;
     let timeInterval;
     let song;
+
+    const typingNextVerse = ref(false);
+    let previousInputLyrics = [];
+    let previousCorrectnessStates = [];
+
     document.body.style.overflowY = "hidden";
     document.title = "Lyrhythmics - " + (props.data.name ? props.data.name : "Unnamed map");
 
@@ -169,7 +175,7 @@
             song.pause();
             pauseStartTime = Date.now();
 
-            if (document.activeElement != document.body) {
+            if (inputs && Object.keys(inputs).map((key) => inputs[key]).some((e) => e == document.activeElement)) {
                 selectedBeforePause = document.activeElement;
                 document.activeElement.blur();
             } else {
@@ -192,8 +198,17 @@
     });
 
     watch(inputLyrics, () => {
-        if (props.data.autospace && Object.keys(inputs).map((key) => inputs[key]).some((e) => e == document.activeElement) && inputLyrics.value[Object.keys(inputs).map((key) => inputs[key]).findIndex((e) => e == document.activeElement)] == lyrics.value[lyricsId.value][Object.keys(inputs).map((key) => inputs[key]).findIndex((e) => e == document.activeElement)].word && Object.keys(inputs).map((key) => inputs[key]).findIndex((e) => e == document.activeElement) != lyrics.value[lyricsId.value].length - 1) {
-            inputs[Object.keys(inputs).map((key) => inputs[key]).findIndex((e) => e == document.activeElement) + 1].focus();
+        if (props.data.autospace && Object.keys(inputs).map((key) => inputs[key]).some((e) => e == document.activeElement) && inputLyrics.value[Object.keys(inputs).map((key) => inputs[key]).findIndex((e) => e == document.activeElement)] == lyrics.value[lyricsId.value][Object.keys(inputs).map((key) => inputs[key]).findIndex((e) => e == document.activeElement)].word) {
+            if (Object.keys(inputs).map((key) => inputs[key]).findIndex((e) => e == document.activeElement) != lyrics.value[lyricsId.value].length - 1) {
+                inputs[Object.keys(inputs).map((key) => inputs[key]).findIndex((e) => e == document.activeElement) + 1].focus();
+            } else if (checkedWord.value == lyrics.value[lyricsId.value].length - 1 && visibleLyrics.value.length != 1) {
+                typingNextVerse.value = true;
+                previousInputLyrics = inputLyrics.value;
+                previousCorrectnessStates = correctnessStates.value;
+                inputLyrics.value = [];
+                correctnessStates.value = new Array(lyrics.value[lyricsId.value + 1].length).fill("");
+                inputs[0].focus();
+            }
         }
     }, { deep: true });
 
@@ -212,6 +227,14 @@
     }
     filteredFilters.value = backgroundFilters.value.filter((e) => e.start - e.transitionDuration <= time.value * speed.value);
     setBackgroundFilters();
+
+    function checkForTypo(word, correctWord) {
+        return correctWord.length >= 3 // checking for typo in 3+ char words
+               && ((word.length == correctWord.length && word.split("").filter((e, idx) => e == correctWord[idx]).length == correctWord.length - 1) // same length, one wrong char
+               || (word.length == correctWord.length + 1 && new Array(word.length).fill(word).some((e, idx) => e.slice(0, idx) + e.slice(idx + 1) == correctWord)) // longer by one, additional char
+               || (word.length == correctWord.length - 1 && new Array(correctWord.length).fill(correctWord).some((e, idx) => e.slice(0, idx) + e.slice(idx + 1) == word)) // shorter by one, missing char) 
+               || (word.length == correctWord.length && new Array(word.length - 1).fill(word).some((e, idx) => e.split("").map((e2, idx2) => idx2 == idx ? e[idx2 + 1] : idx2 == idx + 1 ? e[idx] : e2).join("") == correctWord))); // same length, swapped chars
+    }
 
     function play(e) {
         if (e.key == "Escape") {
@@ -260,47 +283,55 @@
             }
 
             if (time.value >= lyrics.value[lyricsId.value][checkedWord.value].delay / speed.value) {
-                if (checkedWord.value != 0 && (correctnessStates.value[checkedWord.value - 1][0] == "~" || correctnessStates.value[checkedWord.value - 1] == "X") && checkedWord.value != 0 && inputLyrics.value[checkedWord.value - 1] == lyrics.value[lyricsId.value][checkedWord.value - 1].word) {
-                    wordStatistics.value[correctnessStates.value[checkedWord.value - 1]]--;
-                    correctnessStates.value[checkedWord.value - 1] = "Vl";
+                let tempCorrectnessStates;
+                let tempInputLyrics;
+                
+                if (typingNextVerse.value) {
+                    tempCorrectnessStates = previousCorrectnessStates;
+                    tempInputLyrics = previousInputLyrics;
+                } else {
+                    tempCorrectnessStates = correctnessStates.value;
+                    tempInputLyrics = inputLyrics.value;
+                }
+                
+                if (checkedWord.value != 0 && (tempCorrectnessStates[checkedWord.value - 1][0] == "~" || tempCorrectnessStates[checkedWord.value - 1] == "X") && checkedWord.value != 0 && tempInputLyrics[checkedWord.value - 1] == lyrics.value[lyricsId.value][checkedWord.value - 1].word) {
+                    wordStatistics.value[tempCorrectnessStates[checkedWord.value - 1]]--;
+                    tempCorrectnessStates[checkedWord.value - 1] = "Vl";
                     wordStatistics.value.Vl++;
-                } else if (checkedWord.value != 0 && correctnessStates.value[checkedWord.value - 1] == "X" && lyrics.value[lyricsId.value][checkedWord.value - 1].word.length >= 3 // checking for typo in 3+ char words
-                           && ((inputLyrics.value[checkedWord.value - 1].length == lyrics.value[lyricsId.value][checkedWord.value - 1].word.length && inputLyrics.value[checkedWord.value - 1].split("").filter((e, idx) => e == lyrics.value[lyricsId.value][checkedWord.value - 1].word[idx]).length == lyrics.value[lyricsId.value][checkedWord.value - 1].word.length - 1) // same length, one wrong char
-                           || (inputLyrics.value[checkedWord.value - 1].length == lyrics.value[lyricsId.value][checkedWord.value - 1].word.length + 1 && new Array(inputLyrics.value[checkedWord.value - 1].length).fill(inputLyrics.value[checkedWord.value - 1]).map((e, idx) => e.slice(0, idx) + e.slice(idx + 1) == lyrics.value[lyricsId.value][checkedWord.value - 1].word).some(e => e)) // longer by one, additional char
-                           || (inputLyrics.value[checkedWord.value - 1].length == lyrics.value[lyricsId.value][checkedWord.value - 1].word.length - 1 && new Array(lyrics.value[lyricsId.value][checkedWord.value - 1].word.length).fill(lyrics.value[lyricsId.value][checkedWord.value - 1].word).map((e, idx) => e.slice(0, idx) + e.slice(idx + 1) == inputLyrics.value[checkedWord.value - 1]).some(e => e)) // shorter by one, missing char) 
-                           || (inputLyrics.value[checkedWord.value - 1].length == lyrics.value[lyricsId.value][checkedWord.value - 1].word.length && new Array(inputLyrics.value[checkedWord.value - 1].length - 1).fill(inputLyrics.value[checkedWord.value - 1]).map((e, idx) => e.split("").map((e2, idx2) => idx2 == idx ? e[idx2 + 1] : idx2 == idx + 1 ? e[idx] : e2).join("") == lyrics.value[lyricsId.value][checkedWord.value - 1].word).some(e => e)))) { // same length, swapped chars
-                    correctnessStates.value[checkedWord.value - 1] = "~l";
+                } else if (checkedWord.value != 0 && tempCorrectnessStates[checkedWord.value - 1] == "X" && checkForTypo(tempInputLyrics[checkedWord.value - 1], lyrics.value[lyricsId.value][checkedWord.value - 1].word)) {
+                    tempCorrectnessStates[checkedWord.value - 1] = "~l";
                     wordStatistics.value.X--;
                     wordStatistics.value["~l"]++;
                 }
 
-                if (inputLyrics.value[checkedWord.value] == lyrics.value[lyricsId.value][checkedWord.value].word) {
-                    correctnessStates.value[checkedWord.value] = startedVeryEarly ? 
+                if (tempInputLyrics[checkedWord.value] == lyrics.value[lyricsId.value][checkedWord.value].word) {
+                    tempCorrectnessStates[checkedWord.value] = startedVeryEarly ? 
                                                                     "Vv" 
                                                                     : startedTypingEarly ? 
                                                                         'Ve' 
                                                                         : 'V';
-                    wordStatistics.value[correctnessStates.value[checkedWord.value]]++;
+                    wordStatistics.value[tempCorrectnessStates[checkedWord.value]]++;
                 } else {
-                    if (!inputLyrics.value[checkedWord.value]) {
-                        inputLyrics.value[checkedWord.value] = "";
+                    if (!tempInputLyrics[checkedWord.value]) {
+                        tempInputLyrics[checkedWord.value] = "";
                     }
 
-                    if (lyrics.value[lyricsId.value][checkedWord.value].word.length >= 3 // checking for typo in 3+ char words
-                        && ((inputLyrics.value[checkedWord.value].length == lyrics.value[lyricsId.value][checkedWord.value].word.length && inputLyrics.value[checkedWord.value].split("").filter((e, idx) => e == lyrics.value[lyricsId.value][checkedWord.value].word[idx]).length == lyrics.value[lyricsId.value][checkedWord.value].word.length - 1) // same length, one wrong char
-                        || (inputLyrics.value[checkedWord.value].length == lyrics.value[lyricsId.value][checkedWord.value].word.length + 1 && new Array(inputLyrics.value[checkedWord.value].length).fill(inputLyrics.value[checkedWord.value]).map((e, idx) => e.slice(0, idx) + e.slice(idx + 1) == lyrics.value[lyricsId.value][checkedWord.value].word).some(e => e)) // longer by one, additional char
-                        || (inputLyrics.value[checkedWord.value].length == lyrics.value[lyricsId.value][checkedWord.value].word.length - 1 && new Array(lyrics.value[lyricsId.value][checkedWord.value].word.length).fill(lyrics.value[lyricsId.value][checkedWord.value].word).map((e, idx) => e.slice(0, idx) + e.slice(idx + 1) == inputLyrics.value[checkedWord.value]).some(e => e)) // shorter by one, missing char
-                        || (inputLyrics.value[checkedWord.value].length == lyrics.value[lyricsId.value][checkedWord.value].word.length && new Array(inputLyrics.value[checkedWord.value].length - 1).fill(inputLyrics.value[checkedWord.value]).map((e, idx) => e.split("").map((e2, idx2) => idx2 == idx ? e[idx2 + 1] : idx2 == idx + 1 ? e[idx] : e2).join("") == lyrics.value[lyricsId.value][checkedWord.value].word).some(e => e)))) { // same length, swapped chars
-                        correctnessStates.value[checkedWord.value] = startedVeryEarly ?
+                    if (checkForTypo(tempInputLyrics[checkedWord.value], lyrics.value[lyricsId.value][checkedWord.value].word)) {
+                        tempCorrectnessStates[checkedWord.value] = startedVeryEarly ?
                                                                         "~v"
                                                                         : startedTypingEarly ? 
                                                                             '~e' 
                                                                             : '~';
-                        wordStatistics.value[correctnessStates.value[checkedWord.value]]++;
+                        wordStatistics.value[tempCorrectnessStates[checkedWord.value]]++;
                     } else {
-                        correctnessStates.value[checkedWord.value] = "X";
+                        tempCorrectnessStates[checkedWord.value] = "X";
                         wordStatistics.value.X++;
                     }
+                }
+
+                if (!typingNextVerse.value) {
+                    correctnessStates.value = tempCorrectnessStates;
+                    inputLyrics.value = tempInputLyrics;
                 }
 
                 if (props.data.autospace && inputs[checkedWord.value] == document.activeElement && checkedWord.value != lyrics.value[lyricsId.value].length - 1) {
@@ -335,16 +366,27 @@
                     } else {
                         lyricsId.value++;
                         checkedWord.value = 0;
-                        inputLyrics.value = [];
-                        inputs[0].focus();
-                        startedTypingEarly = false;
                         startedVeryEarly = false;
-                        startedVeryEarlyNext = false;
 
-                        setTimeout(() => {
-                            inputs = document.querySelectorAll("input");
-                            correctnessStates.value = new Array(document.querySelectorAll("input").length).fill("");
-                        })
+                        if (typingNextVerse.value) {
+                            typingNextVerse.value = false;
+                            
+                            setTimeout(() => {
+                                inputs = document.querySelectorAll("input");
+                                startedVeryEarlyNext = inputLyrics.value[checkedWord.value + 1] ? true : false;
+                                startedTypingEarly = inputLyrics.value[checkedWord.value] ? true : false;                             
+                            });
+                        } else {
+                            inputLyrics.value = [];
+                            inputs[0].focus();
+                            startedTypingEarly = false;
+                            startedVeryEarlyNext = false;
+
+                            setTimeout(() => {
+                                inputs = document.querySelectorAll("input");
+                                correctnessStates.value = new Array(document.querySelectorAll("input").length).fill("");
+                            });
+                        }
                     }
                 } else {
                     startedVeryEarly = startedVeryEarlyNext;
@@ -375,8 +417,17 @@
         if (e.key == "Escape") {
             paused.value = true;
         } else if (!paused.value) {
-            if (e.key == " " && Object.keys(inputs).map((key) => inputs[key]).findIndex((e) => e == document.activeElement) != Object.keys(inputs).length - 1) {
-                inputs[Object.keys(inputs).map((key) => inputs[key]).findIndex((e) => e == document.activeElement) + 1].focus();
+            if (e.key == " ") {
+                if (Object.keys(inputs).map((key) => inputs[key]).findIndex((e) => e == document.activeElement) != Object.keys(inputs).length - 1) {
+                    inputs[Object.keys(inputs).map((key) => inputs[key]).findIndex((e) => e == document.activeElement) + 1].focus();
+                } else if (checkedWord.value == lyrics.value[lyricsId.value].length - 1 && visibleLyrics.value.length != 1) {
+                    typingNextVerse.value = true;
+                    previousInputLyrics = inputLyrics.value;
+                    previousCorrectnessStates = correctnessStates.value;
+                    inputLyrics.value = [];
+                    correctnessStates.value = new Array(lyrics.value[lyricsId.value + 1].length).fill("");
+                    inputs[0].focus();
+                }
             } else if (props.data.automapSongSkipping) {
                 if (e.key == "Shift") {
                     shiftHeld = true;
@@ -489,24 +540,32 @@
 </script>
 
 <template>
+    <!-- debug -->
+    <p 
+        v-if="false"
+        class="bg-red-900/50 z-90 p-2 fixed rounded-br-lg py-0 text-white top-0 left-0 max-w-40 max-h-6 text-wrap pointer-events-none"
+    >
+        {{  }}
+    </p>
+
     <main
         v-if="songState != 'Loaded'"
-        class="w-screen h-screen flex justify-center items-center text-white font-bold text-4xl bg-neutral-900"
+        class="w-screen h-dvh flex justify-center items-center text-white font-bold text-4xl bg-neutral-900"
     >{{ songState }}</main>
 
     <main 
         v-else
-        class="flex flex-col items-end min-h-screen text-white"
+        class="flex flex-col items-end min-h-dvh text-white"
         :style="{ height: windowHeight + calculateTop(lyrics[lyrics.length - 1][lyrics[lyrics.length - 1].length - 1].delay) + 20 + 'px' }"
     >
         <div 
-            class="fixed h-screen w-screen select-none font-bold text-3xl bg-neutral-900 flex justify-center items-center"
+            class="fixed h-dvh w-screen select-none font-bold text-3xl bg-neutral-900 flex justify-center items-center"
             :style="{ color: `rgb(${imageStateColor}, ${imageStateColor}, ${imageStateColor})` }"
         >
             <p v-if="imageStateColor != 0">{{ imageState }}</p>
         </div>
         <img
-            class="fixed h-screen w-screen object-cover select-none text-black text-[0px]" 
+            class="fixed h-dvh w-screen object-cover select-none text-black text-[0px]" 
             :style="{ filter: 'hue-rotate(' + currentHue + 'deg) brightness(' + currentBrightness / 100 + ')' }"
             :src="props.data.backgroundImage" 
             alt="Background"
@@ -520,12 +579,12 @@
         >
             <div 
                 :class="reduceTransparency ? 'flex items-center justify-end [-webkit-text-stroke:0.75px_black] font-bold' : 'flex items-center justify-end'"
-                v-for="lyric, idx in lyrics[lyricsId]"
+                v-for="lyric, idx in typingNextVerse ? lyrics[lyricsId + 1] : lyrics[lyricsId]"
             >
                 <input 
                     class="p-2 pt-1.5 text-center focus:border-white focus:backdrop-brightness-175 outline-0 border-t-2 border-white/0 placeholder-neutral-400"
                     v-model="inputLyrics[idx]"
-                    :style="{ width: calculateInputWidth(lyrics[lyricsId].length),
+                    :style="{ width: calculateInputWidth(typingNextVerse ? lyrics[lyricsId + 1].length : lyrics[lyricsId].length),
                               backgroundColor: scoringData.filter((e) => (!e.code && !correctnessStates[idx]) || e.code == correctnessStates[idx])[0].color + (reduceTransparency ? 'E6' : '66') }"
                     :placeholder="lyric.word"
                     :tabindex="paused || finished ? -1 : 0"
@@ -544,14 +603,19 @@
 
         <div
             v-else-if="time == startTime / speed"
-            class="fixed top-1.5 w-full flex justify-center"
+            class="fixed sm:top-1.5 w-full flex flex-col items-center justify-center sm:justify-start h-full gap-3"
         >
-            <p class="bg-black/[var(--bg-40)] px-4 py-1.25 rounded-xl backdrop-blur-md max-w-[calc(100vw-375px)] text-center">
-                Press any key to start. {{ 
-                    (startTime == 0 ? "The map starts with " + (props.data.partsWithoutLyrics.length && props.data.partsWithoutLyrics[0].start == 0 ? aOrAnNumber(Math.round(data.partsWithoutLyrics[0].end / speed).toString()) + Math.round(data.partsWithoutLyrics[0].end / speed) + " second" + (Math.round(props.data.partsWithoutLyrics[0].end / speed) == 1 ? "" : "s") + " long" : aOrAnNumber(Math.round(lyrics[0][0].delay / speed - 3.5).toString()) + Math.round(lyrics[0][0].delay / speed - 3.5) + " second" + (Math.round(lyrics[0][0].delay / speed - 3.5) == 1 ? "" : "s") + " long unmarked") + " lyricless part" 
+            <p class="bg-black/[var(--bg-40)] px-4 py-1.25 rounded-xl backdrop-blur-md max-w-[calc(100vw-40px)] sm:max-w-[calc(100vw-375px)] text-center">
+                {{ (mobile ? "Press the button below to start. " : "Press any key to start. ")
+                    + (startTime == 0 ? "The map starts with " + (props.data.partsWithoutLyrics.length && props.data.partsWithoutLyrics[0].start == 0 ? aOrAnNumber(Math.round(data.partsWithoutLyrics[0].end / speed).toString()) + Math.round(data.partsWithoutLyrics[0].end / speed) + " second" + (Math.round(props.data.partsWithoutLyrics[0].end / speed) == 1 ? "" : "s") + " long" : aOrAnNumber(Math.round(lyrics[0][0].delay / speed - 3.5).toString()) + Math.round(lyrics[0][0].delay / speed - 3.5) + " second" + (Math.round(lyrics[0][0].delay / speed - 3.5) == 1 ? "" : "s") + " long unmarked") + " lyricless part" 
                     : "You started in a" + (data.partsWithoutLyrics.filter((e) => e.start <= time && e.end > time).length ? " lyricless part. It ends in " + Math.round(data.partsWithoutLyrics.filter((e) => e.start <= time && e.end > time)[0].end / speed - time) + " second" + (Math.round(data.partsWithoutLyrics.filter((e) => e.start <= time && e.end > time)[0].end / speed - time) == 1 ? "" : "s") : "n unmarked lyricless part. It ends in " + Math.round(lyrics.filter(e => e[0].delay / speed > time)[0][0].delay / speed - 3.5 - time) + " second" + (Math.round(lyrics.filter(e => e[0].delay / speed > time)[0][0].delay / speed - 3.5 - time) == 1 ? "" : "s"))) 
                     + (data.skipLyricless || data.forceskip ? ". As it's unmarked, it wasn't skipped." : ".") }}
             </p>
+            <button 
+                v-if="mobile"
+                class="button w-fit"
+                @click="play({})"
+            >Start</button>
         </div>
 
         <div 
@@ -575,7 +639,7 @@
         </div>
         
         <div 
-            class="bg-black/[var(--bg-40)] mr-5 px-4 py-2 rounded-xl flex items-center flex-col z-1 backdrop-blur-md fixed"
+            class="bg-black/[var(--bg-40)] right-4 px-4 py-2 rounded-xl flex items-center flex-col z-1 backdrop-blur-md fixed"
             :style="{ top: data.playtesting ? 
                             '64px'
                             : isInsideLyricless() ?
@@ -591,25 +655,27 @@
             <p v-if="data.automapSongSkipping">Song: {{ (Math.round(songPosition * 100) / 100).toFixed(2) }}s</p>
         </div>
 
-        <div 
+        <button
+            v-if="mobile"
+            class="button fixed bottom-4 left-4"
+            @click="paused = true"
+        >Pause</button>
+
+        <MapCustomization 
             v-if="paused"
-            class="fixed left-0 z-9 w-screen h-screen flex justify-center items-center text-white"
-        >
-            <MapCustomization 
-                :pausedVariant="true"
-                :data="data"
-                :continuedWithSettings="continuedWithSettings"
-                @continue="(data) => unpause(data)"
-                @setData="(data) => $emit('setData', data, true)"
-            />
-        </div>
+            :pausedVariant="true"
+            :data="data"
+            :continuedWithSettings="continuedWithSettings"
+            @continue="(data) => unpause(data)"
+            @setData="(data) => $emit('setData', data, true)"
+        />
 
         <div
             v-if="finished"
-            class="fixed left-0 w-screen h-screen flex justify-center items-center text-white z-10 text-center"
+            class="fixed left-0 w-screen h-dvh flex justify-center items-center text-white z-10 text-center"
         >
-            <div class="fixed w-screen h-screen bg-black/[var(--bg-60)] backdrop-blur-xs"></div> 
-            <div class="flex flex-col items-center max-h-full w-full py-2 overflow-y-auto z-11">
+            <div class="fixed w-screen h-dvh bg-black/[var(--bg-60)] backdrop-blur-xs"></div> 
+            <div class="flex flex-col items-center max-h-full w-full p-2 overflow-y-auto z-11">
                 <PinkHeader 
                     :text="'Score: ' + (finalScore == -1 ? '??' : finalScore) + '%'" 
                 />
