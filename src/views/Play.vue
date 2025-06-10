@@ -5,7 +5,8 @@
     import PinkHeader from '@/components/PinkHeader.vue';
 
     const props = defineProps([
-        "data"
+        "data",
+        "fullscreenButtonShown"
     ]);
 
     const emit = defineEmits([
@@ -614,6 +615,7 @@
             <button 
                 v-if="mobile"
                 class="button w-fit"
+                :tabindex="paused || finished ? -1 : 0"
                 @click="play({})"
             >Start</button>
         </div>
@@ -657,7 +659,8 @@
 
         <button
             v-if="mobile"
-            class="button fixed bottom-4 left-4"
+            :class="fullscreenButtonShown ? 'button fixed bottom-4 right-4' : 'button fixed bottom-4 left-4'"
+            :tabindex="paused || finished ? -1 : 0"
             @click="paused = true"
         >Pause</button>
 

@@ -7,7 +7,7 @@
     const data = ref({});
     const show = ref(true);
     const cachedMaps = ref({});
-    const fullscreen = ref(false);
+    const fullscreen = ref(window.fullScreen);
 
     const hideFullscreenButton = ref(localStorage.getItem("hideFullscreenButton"));
     const reduceTransparency = ref(localStorage.getItem("reduceTransparency"));
@@ -70,6 +70,7 @@
     <RouterView
         v-else-if="show"
         :data="data"
+        :fullscreenButtonShown="config.enableFullscreenButton && !hideFullscreenButton && !fullscreen"
         @setData="(newData, doARestart) => doARestart ? restart(newData) : data = newData"
     />
 

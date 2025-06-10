@@ -1,5 +1,14 @@
 { 
     "releases": [{
+            "version": "1.4.1",
+            "date": "June 10th, 2025",
+            "changes": [
+                "Fixed the optional fullscreen button that's on Newgrounds and itch.io overlapping the mobile pause button.",
+                "Now the fullscreen button isn't there if the game starts in fullscreen mode, which is the case for itch.io.",
+                "The mobile start and pause buttons now have tabindex set, meaning they aren't accessible through pressing tab when there's an overlay."
+            ]
+        },
+        {
             "version": "1.4.0",
             "date": "June 10th, 2025",
             "changes": [
