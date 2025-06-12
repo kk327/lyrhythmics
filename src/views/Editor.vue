@@ -21,6 +21,8 @@
 
     const targetFPS = localStorage.getItem("targetFPS") ? localStorage.getItem("targetFPS") : 60;
     const nonDecimalCurrentTime = localStorage.getItem("nonDecimalCurrentTime");
+    const disableBackgroundFilters = localStorage.getItem("disableBackgroundFilters");
+
     const settingsVisible = ref(false);
     const scrollY = ref(0);
     let savedScrollY = 0;
@@ -299,17 +301,19 @@
     }
 
     function setBackgroundFilters() {
-        const virtualFilters = (!backgroundFilters.value.length ?
-                                    [{ start: 0, hue: 0, brightness: 100, transitionDuration: 0}] 
-                                    : backgroundFilters.value[0].start == 0 ? 
-                                        backgroundFilters.value : 
-                                        [{ start: 0, hue: 0, brightness: 100, transitionDuration: 0}, ...backgroundFilters.value]);
+        if (!disableBackgroundFilters) {
+            const virtualFilters = (!backgroundFilters.value.length ?
+                                        [{ start: 0, hue: 0, brightness: 100, transitionDuration: 0}] 
+                                        : backgroundFilters.value[0].start == 0 ? 
+                                            backgroundFilters.value : 
+                                            [{ start: 0, hue: 0, brightness: 100, transitionDuration: 0}, ...backgroundFilters.value]);
 
-        const filteredFilters = virtualFilters.filter((e) => e.start - e.transitionDuration <= topToDelay(songPosition.value != -1 ? songPosition.value : window.scrollY));
+            const filteredFilters = virtualFilters.filter((e) => e.start - e.transitionDuration <= topToDelay(songPosition.value != -1 ? songPosition.value : window.scrollY));
 
-        currentHue.value = filteredFilters[filteredFilters.length - 1].hue - (filteredFilters.length != 1 && topToDelay(songPosition.value != -1 ? songPosition.value : window.scrollY) - filteredFilters[filteredFilters.length - 1].start < 0 ? (filteredFilters[filteredFilters.length - 1].hue > filteredFilters[filteredFilters.length - 2].hue ? filteredFilters[filteredFilters.length - 1].hue - filteredFilters[filteredFilters.length - 2].hue : (filteredFilters[filteredFilters.length - 2].hue - filteredFilters[filteredFilters.length - 1].hue) * -1) * ((filteredFilters[filteredFilters.length - 1].start - topToDelay(songPosition.value != -1 ? songPosition.value : window.scrollY)) / filteredFilters[filteredFilters.length - 1].transitionDuration) : 0);
+            currentHue.value = filteredFilters[filteredFilters.length - 1].hue - (filteredFilters.length != 1 && topToDelay(songPosition.value != -1 ? songPosition.value : window.scrollY) - filteredFilters[filteredFilters.length - 1].start < 0 ? (filteredFilters[filteredFilters.length - 1].hue > filteredFilters[filteredFilters.length - 2].hue ? filteredFilters[filteredFilters.length - 1].hue - filteredFilters[filteredFilters.length - 2].hue : (filteredFilters[filteredFilters.length - 2].hue - filteredFilters[filteredFilters.length - 1].hue) * -1) * ((filteredFilters[filteredFilters.length - 1].start - topToDelay(songPosition.value != -1 ? songPosition.value : window.scrollY)) / filteredFilters[filteredFilters.length - 1].transitionDuration) : 0);
 
-        currentBrightness.value = filteredFilters[filteredFilters.length - 1].brightness - (filteredFilters.length != 1 && topToDelay(songPosition.value != -1 ? songPosition.value : window.scrollY) - filteredFilters[filteredFilters.length - 1].start < 0 ? (filteredFilters[filteredFilters.length - 1].brightness > filteredFilters[filteredFilters.length - 2].brightness ? filteredFilters[filteredFilters.length - 1].brightness - filteredFilters[filteredFilters.length - 2].brightness : (filteredFilters[filteredFilters.length - 2].brightness - filteredFilters[filteredFilters.length - 1].brightness) * -1) * ((filteredFilters[filteredFilters.length - 1].start - topToDelay(songPosition.value != -1 ? songPosition.value : window.scrollY)) / filteredFilters[filteredFilters.length - 1].transitionDuration) : 0);
+            currentBrightness.value = filteredFilters[filteredFilters.length - 1].brightness - (filteredFilters.length != 1 && topToDelay(songPosition.value != -1 ? songPosition.value : window.scrollY) - filteredFilters[filteredFilters.length - 1].start < 0 ? (filteredFilters[filteredFilters.length - 1].brightness > filteredFilters[filteredFilters.length - 2].brightness ? filteredFilters[filteredFilters.length - 1].brightness - filteredFilters[filteredFilters.length - 2].brightness : (filteredFilters[filteredFilters.length - 2].brightness - filteredFilters[filteredFilters.length - 1].brightness) * -1) * ((filteredFilters[filteredFilters.length - 1].start - topToDelay(songPosition.value != -1 ? songPosition.value : window.scrollY)) / filteredFilters[filteredFilters.length - 1].transitionDuration) : 0);
+        }
     }
 
     function onScroll() {

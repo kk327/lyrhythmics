@@ -54,6 +54,7 @@
     const lyricsId = ref(lyrics.value.findIndex((e) => e.some((e2) => e2.delay >= startTime.value)));
     const checkedWord = ref(lyrics.value[lyricsId.value].findIndex((e) => e.delay >= startTime.value));
     const inputLyrics = ref([]);
+    let dontGoToNext = false;
 
     let startedTypingEarly = false;
     let startedVeryEarly = false;
@@ -71,9 +72,11 @@
     let shiftHeld = false;
     const songPosition = ref(0);
     let previouslyInsideLyricless = false;
+    
     const targetFPS = localStorage.getItem("targetFPS") ? localStorage.getItem("targetFPS") : 60;
     const nonDecimalCurrentTime = localStorage.getItem("nonDecimalCurrentTime");
     const reduceTransparency = localStorage.getItem("reduceTransparency");
+    let disableBackgroundFilters = localStorage.getItem("disableBackgroundFilters");
 
     const wordStatistics = ref({
         X: 0,
@@ -121,6 +124,10 @@
 
     document.body.style.overflowY = "hidden";
     document.title = "Lyrhythmics - " + (props.data.name ? props.data.name : "Unnamed map");
+
+    let previousTimestamp = 0;
+    const lagWarning = ref(false);
+    const thinScreen = ref(!window.matchMedia("(min-width: 40rem)").matches);
 
     const visibleLyrics = computed(() => {
         return lyrics.value.filter((e) => e.some((e2) => window.innerHeight * (e2.delay / speed.value - time.value) / 3.5 >= -30 && window.innerHeight * (e2.delay / speed.value - time.value) / 3.5 <= window.innerHeight));
@@ -190,10 +197,15 @@
             if (selectedBeforePause && !Object.keys(inputs).map((key) => inputs[key]).some((e) => e == document.activeElement)) {
                 selectedBeforePause.focus();
             }
-            
+  
             if (timeAtStart) {
-                song.play();
+                previousTimestamp = Date.now();
                 skippedTime -= (Date.now() - pauseStartTime) / 1000;
+
+                setTimeout(() => {
+                    song.currentTime = time.value;
+                    song.play();
+                }, 0);
             }
         }
     });
@@ -214,17 +226,20 @@
     }, { deep: true });
 
     function onResize() {
+        thinScreen.value = !window.matchMedia("(min-width: 40rem)").matches;
         sizeRefresh.value = !sizeRefresh.value;
     }
 
     function setBackgroundFilters() {
-        if (time.value * speed.value > filteredFilters.value[0].start) {
-            filteredFilters.value = backgroundFilters.value.filter((e) => e.start - e.transitionDuration <= time.value * speed.value);
+        if (!disableBackgroundFilters) {
+            if (time.value * speed.value > filteredFilters.value[0].start) {
+                filteredFilters.value = backgroundFilters.value.filter((e) => e.start - e.transitionDuration <= time.value * speed.value);
+            }
+
+            currentHue.value = filteredFilters.value[filteredFilters.value.length - 1].hue - (filteredFilters.value.length != 1 && time.value * speed.value - filteredFilters.value[filteredFilters.value.length - 1].start < 0 ? (filteredFilters.value[filteredFilters.value.length - 1].hue > filteredFilters.value[filteredFilters.value.length - 2].hue ? filteredFilters.value[filteredFilters.value.length - 1].hue - filteredFilters.value[filteredFilters.value.length - 2].hue : (filteredFilters.value[filteredFilters.value.length - 2].hue - filteredFilters.value[filteredFilters.value.length - 1].hue) * -1) * ((filteredFilters.value[filteredFilters.value.length - 1].start - time.value * speed.value) / filteredFilters.value[filteredFilters.value.length - 1].transitionDuration) : 0);
+
+            currentBrightness.value = filteredFilters.value[filteredFilters.value.length - 1].brightness - (filteredFilters.value.length != 1 && time.value * speed.value - filteredFilters.value[filteredFilters.value.length - 1].start < 0 ? (filteredFilters.value[filteredFilters.value.length - 1].brightness > filteredFilters.value[filteredFilters.value.length - 2].brightness ? filteredFilters.value[filteredFilters.value.length - 1].brightness - filteredFilters.value[filteredFilters.value.length - 2].brightness : (filteredFilters.value[filteredFilters.value.length - 2].brightness - filteredFilters.value[filteredFilters.value.length - 1].brightness) * -1) * ((filteredFilters.value[filteredFilters.value.length - 1].start - time.value * speed.value) / filteredFilters.value[filteredFilters.value.length - 1].transitionDuration) : 0);
         }
-
-        currentHue.value = filteredFilters.value[filteredFilters.value.length - 1].hue - (filteredFilters.value.length != 1 && time.value * speed.value - filteredFilters.value[filteredFilters.value.length - 1].start < 0 ? (filteredFilters.value[filteredFilters.value.length - 1].hue > filteredFilters.value[filteredFilters.value.length - 2].hue ? filteredFilters.value[filteredFilters.value.length - 1].hue - filteredFilters.value[filteredFilters.value.length - 2].hue : (filteredFilters.value[filteredFilters.value.length - 2].hue - filteredFilters.value[filteredFilters.value.length - 1].hue) * -1) * ((filteredFilters.value[filteredFilters.value.length - 1].start - time.value * speed.value) / filteredFilters.value[filteredFilters.value.length - 1].transitionDuration) : 0);
-
-        currentBrightness.value = filteredFilters.value[filteredFilters.value.length - 1].brightness - (filteredFilters.value.length != 1 && time.value * speed.value - filteredFilters.value[filteredFilters.value.length - 1].start < 0 ? (filteredFilters.value[filteredFilters.value.length - 1].brightness > filteredFilters.value[filteredFilters.value.length - 2].brightness ? filteredFilters.value[filteredFilters.value.length - 1].brightness - filteredFilters.value[filteredFilters.value.length - 2].brightness : (filteredFilters.value[filteredFilters.value.length - 2].brightness - filteredFilters.value[filteredFilters.value.length - 1].brightness) * -1) * ((filteredFilters.value[filteredFilters.value.length - 1].start - time.value * speed.value) / filteredFilters.value[filteredFilters.value.length - 1].transitionDuration) : 0);
     }
     filteredFilters.value = backgroundFilters.value.filter((e) => e.start - e.transitionDuration <= time.value * speed.value);
     setBackgroundFilters();
@@ -266,6 +281,7 @@
 
         removeEventListener("keydown", play);
         timeAtStart = Date.now();
+        previousTimestamp = Date.now();
 
         timeInterval = setInterval(() => {
             if (paused.value) {
@@ -282,6 +298,12 @@
                 song.currentTime += (partsWithoutLyrics[0].end / speed.value - time.value) * speed.value;
                 partsWithoutLyrics.shift();
             }
+
+            if (1000 / (Date.now() - previousTimestamp) <= 5 && !disableBackgroundFilters && filteredFilters.value.some(e => time.value >= e.start - e.transitionDuration && time.value <= e.start) && !localStorage.getItem("disableLagPrevention")) {
+                lagWarning.value = true;
+                disableBackgroundFilters = true;
+            }
+            previousTimestamp = Date.now();
 
             if (time.value >= lyrics.value[lyricsId.value][checkedWord.value].delay / speed.value) {
                 let tempCorrectnessStates;
@@ -401,6 +423,13 @@
         inputs = document.querySelectorAll("input");
         if (inputs.length && !Object.keys(inputs).map((key) => inputs[key]).some((e) => e == document.activeElement)) {
             inputs[checkedWord.value].focus();
+            dontGoToNext = true;
+
+            setTimeout(() => {
+                if (inputLyrics.value[checkedWord.value] == " ") {
+                    inputLyrics.value[checkedWord.value] = "";
+                }
+            }, 0);
         }
 
         addEventListener("keydown", playingKeydown);
@@ -417,28 +446,30 @@
     function playingKeydown(e) {
         if (e.key == "Escape") {
             paused.value = true;
-        } else if (!paused.value) {
-            if (e.key == " ") {
-                if (Object.keys(inputs).map((key) => inputs[key]).findIndex((e) => e == document.activeElement) != Object.keys(inputs).length - 1) {
-                    inputs[Object.keys(inputs).map((key) => inputs[key]).findIndex((e) => e == document.activeElement) + 1].focus();
-                } else if (checkedWord.value == lyrics.value[lyricsId.value].length - 1 && visibleLyrics.value.length != 1) {
-                    typingNextVerse.value = true;
-                    previousInputLyrics = inputLyrics.value;
-                    previousCorrectnessStates = correctnessStates.value;
-                    inputLyrics.value = [];
-                    correctnessStates.value = new Array(lyrics.value[lyricsId.value + 1].length).fill("");
-                    inputs[0].focus();
-                }
-            } else if (props.data.automapSongSkipping) {
-                if (e.key == "Shift") {
-                    shiftHeld = true;
-                } else if (shiftHeld && e.key == "ArrowLeft") {
-                    song.currentTime -= 2 * speed.value;
-                    song.play();
-                } else if (shiftHeld && e.key == "ArrowRight") {
-                    song.currentTime += 2 * speed.value;
-                }
+        } else if (!paused.value && props.data.automapSongSkipping) {
+            if (e.key == "Shift") {
+                shiftHeld = true;
+            } else if (shiftHeld && e.key == "ArrowLeft") {
+                song.currentTime -= 2 * speed.value;
+                song.play();
+            } else if (shiftHeld && e.key == "ArrowRight") {
+                song.currentTime += 2 * speed.value;
             }
+        }
+    }
+
+    function goToNextWord(currentIdx) {
+        inputLyrics.value[currentIdx] = inputLyrics.value[currentIdx].trim();
+
+        if (currentIdx != lyrics.value[lyricsId.value].length - 1) {
+            inputs[currentIdx + 1].focus();
+        } else if (checkedWord.value == lyrics.value[lyricsId.value].length - 1 && visibleLyrics.value.length != 1) {
+            typingNextVerse.value = true;
+            previousInputLyrics = inputLyrics.value;
+            previousCorrectnessStates = correctnessStates.value;
+            inputLyrics.value = [];
+            correctnessStates.value = new Array(lyrics.value[lyricsId.value + 1].length).fill("");
+            inputs[0].focus();
         }
     }
 
@@ -541,14 +572,6 @@
 </script>
 
 <template>
-    <!-- debug -->
-    <p 
-        v-if="false"
-        class="bg-red-900/50 z-90 p-2 fixed rounded-br-lg py-0 text-white top-0 left-0 max-w-40 max-h-6 text-wrap pointer-events-none"
-    >
-        {{  }}
-    </p>
-
     <main
         v-if="songState != 'Loaded'"
         class="w-screen h-dvh flex justify-center items-center text-white font-bold text-4xl bg-neutral-900"
@@ -584,13 +607,15 @@
             >
                 <input 
                     class="p-2 pt-1.5 text-center focus:border-white focus:backdrop-brightness-175 outline-0 border-t-2 border-white/0 placeholder-neutral-400"
+                    type="text"
+                    autocapitalize="none"
+                    autocorrect="off"
                     v-model="inputLyrics[idx]"
                     :style="{ width: calculateInputWidth(typingNextVerse ? lyrics[lyricsId + 1].length : lyrics[lyricsId].length),
                               backgroundColor: scoringData.filter((e) => (!e.code && !correctnessStates[idx]) || e.code == correctnessStates[idx])[0].color + (reduceTransparency ? 'E6' : '66') }"
                     :placeholder="lyric.word"
                     :tabindex="paused || finished ? -1 : 0"
-                    type="text"
-                    @input="inputLyrics[idx] = inputLyrics[idx].trim()"
+                    @input="inputLyrics[idx].includes(' ') && !dontGoToNext ? goToNextWord(idx) : dontGoToNext = false"
                 >
                 
                 <p 
@@ -633,7 +658,7 @@
                     :style="{ width: calculateInputWidth(verse.length), 
                               top: calculateTop(lyric.delay) + 'px' }"
                 >
-                    <span class="bg-black/[var(--bg-40)] px-4 py-1.25 relative bottom-1 rounded-xl backdrop-blur-md max-w-full">
+                    <span class="bg-black/[var(--bg-40)] px-2 sm:px-4 py-1.25 relative bottom-1 rounded-xl backdrop-blur-md max-w-full">
                         {{ lyric.word }}
                     </span>
                 </p>
@@ -663,6 +688,21 @@
             :tabindex="paused || finished ? -1 : 0"
             @click="paused = true"
         >Pause</button>
+
+        <div
+            v-if="lagWarning"
+            class="fixed w-full flex justify-center"
+            :style="{ bottom: (thinScreen && mobile ? 76 : thinScreen && fullscreenButtonShown ? 60 : 16) + 'px' }"
+        >
+            <p class="bg-black/[var(--bg-40)] px-4 py-1.25 rounded-xl backdrop-blur-md max-w-[calc(100vw-32px)] sm:max-w-[calc(100vw-225px)] text-center flex flex-col md:flex-row items-center gap-1 md:gap-3">
+                Huge lag during a background transition was detected. During this map, the background won't change its color and brightness anymore to prevent lag. If you keep seeing this, turn on either "Disable background filters" or "Disable lag prevention" in the settings.
+                <button 
+                    class="button"
+                    :tabindex="paused || finished ? -1 : 0"
+                    @click="lagWarning = false"
+                >Okay</button>
+            </p>
+        </div>
 
         <MapCustomization 
             v-if="paused"

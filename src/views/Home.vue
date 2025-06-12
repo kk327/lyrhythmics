@@ -118,6 +118,8 @@
         { codeName: "disableBackgroundLyrics", displayName: "Disable main menu background lyrics", clarification: "saves resources if you keep the game open in the backround" },
         { codeName: "reduceTransparency", displayName: "Reduce background transparency", clarification: "improves readability, applies to small elements like inputs as well" },
         { codeName: "continueWithRestartSettings", displayName: "Continue with restart settings by default" },
+        { codeName: "disableBackgroundFilters", displayName: "Disable background filters", clarification: "in case the background changing its color or brightness causes lag" },
+        { codeName: "disableLagPrevention", displayName: "Disable lag prevention", clarification: "disables checking for whether a background transition causes huge lag" },
         { codeName: "nonDecimalCurrentTime", displayName: "Non-decimal current time", clarification: "reduces the motion of the time counter" },
         { codeName: "disableCaching", displayName: "Disable storing official maps in RAM", clarification: "by default after you load a map it's saved for later" },
         { codeName: "hideFullscreenButton", displayName: "Hide the fullscreen button"},
@@ -323,6 +325,7 @@
     }
 
     async function downloadMap(codeName) {
+        stopSongSample();
         document.activeElement.blur();
 
         if (Object.keys(preloadedMaps).length) {
@@ -354,7 +357,7 @@
     }
 
     function playSongSample(name) {
-        if (Object.keys(selectedMapData.value).length == 0 && !mobile) {
+        if (Object.keys(selectedMapData.value).length == 0) {
             stopSongSample();
             song.value = new Audio(songSamples[name]);
             song.value.playbackRate = settings.defaultSpeed;
@@ -394,7 +397,7 @@
                         : Object.keys(selectedMapData).length != 0 ?
                             selectedMapData.backgroundImage
                             : defaultBackground"
-        :style="{ filter: 'hue-rotate(' + (
+        :style="{ filter: settings.disableBackgroundFilters ? '' : 'hue-rotate(' + (
             visibleOverlay == 'automap' ?
                 automapHueRotate + 'deg)'
                 : Object.keys(data).length != 0 && data.backgroundFilters.length && data.backgroundFilters[0].start == 0 ?
