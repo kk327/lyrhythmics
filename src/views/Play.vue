@@ -203,7 +203,7 @@
                 skippedTime -= (Date.now() - pauseStartTime) / 1000;
 
                 setTimeout(() => {
-                    song.currentTime = time.value;
+                    song.currentTime = time.value * speed.value;
                     song.play();
                 }, 0);
             }

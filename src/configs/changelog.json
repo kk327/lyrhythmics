@@ -1,5 +1,12 @@
 { 
     "releases": [{
+        "version": "1.4.3",
+        "date": "June 14th, 2025",
+        "changes": [
+            "Fixed pausing desyncing the song a lot if the speed isn't set to 1. This bug was introduced with a 1.4.2 bugfix."
+        ]
+    },
+    {
         "version": "1.4.2",
         "date": "June 12th, 2025",
         "changes": [
