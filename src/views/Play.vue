@@ -211,16 +211,20 @@
     });
 
     watch(inputLyrics, () => {
-        if (props.data.autospace && Object.keys(inputs).map((key) => inputs[key]).some((e) => e == document.activeElement) && inputLyrics.value[Object.keys(inputs).map((key) => inputs[key]).findIndex((e) => e == document.activeElement)] == lyrics.value[lyricsId.value][Object.keys(inputs).map((key) => inputs[key]).findIndex((e) => e == document.activeElement)].word) {
-            if (Object.keys(inputs).map((key) => inputs[key]).findIndex((e) => e == document.activeElement) != lyrics.value[lyricsId.value].length - 1) {
+        if (props.data.autospace && Object.keys(inputs).map((key) => inputs[key]).some((e) => e == document.activeElement) && inputLyrics.value[Object.keys(inputs).map((key) => inputs[key]).findIndex((e) => e == document.activeElement)] == lyrics.value[lyricsId.value + (typingNextVerse.value ? 1 : 0)][Object.keys(inputs).map((key) => inputs[key]).findIndex((e) => e == document.activeElement)].word) {
+            if (Object.keys(inputs).map((key) => inputs[key]).findIndex((e) => e == document.activeElement) != lyrics.value[lyricsId.value + (typingNextVerse.value ? 1 : 0)].length - 1) {
                 inputs[Object.keys(inputs).map((key) => inputs[key]).findIndex((e) => e == document.activeElement) + 1].focus();
-            } else if (checkedWord.value == lyrics.value[lyricsId.value].length - 1 && visibleLyrics.value.length != 1) {
+            } else if (!typingNextVerse.value && checkedWord.value == lyrics.value[lyricsId.value].length - 1 && visibleLyrics.value.length != 1) {
                 typingNextVerse.value = true;
                 previousInputLyrics = inputLyrics.value;
                 previousCorrectnessStates = correctnessStates.value;
                 inputLyrics.value = [];
                 correctnessStates.value = new Array(lyrics.value[lyricsId.value + 1].length).fill("");
                 inputs[0].focus();
+
+                setTimeout(() => {
+                    inputs = document.querySelectorAll("input");
+                }, 0);
             }
         }
     }, { deep: true });
@@ -461,15 +465,19 @@
     function goToNextWord(currentIdx) {
         inputLyrics.value[currentIdx] = inputLyrics.value[currentIdx].trim();
 
-        if (currentIdx != lyrics.value[lyricsId.value].length - 1) {
+        if (currentIdx != lyrics.value[lyricsId.value + (typingNextVerse.value ? 1 : 0)].length - 1) {
             inputs[currentIdx + 1].focus();
-        } else if (checkedWord.value == lyrics.value[lyricsId.value].length - 1 && visibleLyrics.value.length != 1) {
+        } else if (!typingNextVerse.value && checkedWord.value == lyrics.value[lyricsId.value].length - 1 && visibleLyrics.value.length != 1) {
             typingNextVerse.value = true;
             previousInputLyrics = inputLyrics.value;
             previousCorrectnessStates = correctnessStates.value;
             inputLyrics.value = [];
             correctnessStates.value = new Array(lyrics.value[lyricsId.value + 1].length).fill("");
             inputs[0].focus();
+
+            setTimeout(() => {
+                inputs = document.querySelectorAll("input");
+            }, 0);
         }
     }
 
@@ -543,7 +551,7 @@
             lyrics.value = lyrics.value.filter((e) => e.length);
 
             if (data.autospace) {
-                inputs[checkedWord.value].focus();
+                inputs[typingNextVerse.value ? 0 : checkedWord.value].focus();
             }
 
             continueOffset -= (time.value - startTime.value / speed.value) - (time.value - startTime.value / speed.value) * speed.value / data.speed;

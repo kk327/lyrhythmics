@@ -1,5 +1,14 @@
 { 
     "releases": [{
+        "version": "1.4.4",
+        "date": "June 15th, 2025",
+        "changes": [
+            "Fixed autospace not working if you started typing a verse early and the previous one hasn't passed yet.",
+            "When you enable autospace from the pause menu and continue with the settings, the currently sang word gets selected. When you started typing a verse early and did that before the previous verse passed, the word with the index of the length of the previous verse was selected, that's fixed now.",
+            "Fixed not being able to go to a further word than the length of the previous verse if you started typing a verse early and the previous one hasn't passed yet."
+        ]
+    },
+    {
         "version": "1.4.3",
         "date": "June 14th, 2025",
         "changes": [
