@@ -1,12 +1,14 @@
 <script setup>
-    import { ref, watch, onMounted, onUnmounted } from 'vue';
+    import { ref, watch, watchEffect, onMounted, onUnmounted } from 'vue';
     import defaultBackground from '@/assets/background.png'
+    import config from "@/configs/config.json";
 
     const props = defineProps([
         "tabindex",
         "defaultBackgroundImage",
         "defaultSong",
-        "minDuration"
+        "minDuration",
+        "backgroundImageTheme"
     ]);
 
     const emit = defineEmits([
@@ -18,8 +20,11 @@
     const audio = ref(new Audio());
     const songDuration = ref(0);
     const songName = ref("");
-    const backgroundImage = ref(props.defaultBackgroundImage ? props.defaultBackgroundImage : defaultBackground);
     const targetFPS = localStorage.getItem("targetFPS") ? localStorage.getItem("targetFPS") : 60;
+
+    const theme = localStorage.getItem("theme") ? JSON.parse(localStorage.getItem("theme")) : config.defaultTheme;
+    const defaultBackgroundImage = theme.backgroundImage == "default" ? defaultBackground : theme.backgroundImage;
+    const backgroundImage = ref(props.defaultBackgroundImage);
 
     const songPosition = ref(0);
     const playingSong = ref(false);
@@ -66,6 +71,16 @@
         }
     });
 
+    watch(backgroundImage, () => {
+        emit("backgroundImageSet", backgroundImage.value);
+    });
+
+    watchEffect(() => {
+        if (backgroundImage.value != props.defaultBackgroundImage) {
+            backgroundImage.value = props.defaultBackgroundImage;
+        }
+    });
+
     onMounted(() => { // so that the watcher reacts
         if (props.defaultSong) { 
             song.value = props.defaultSong;
@@ -74,10 +89,6 @@
 
     onUnmounted(() => {
         stopSong();
-    });
-
-    watch(backgroundImage, () => {
-        emit("backgroundImageSet", backgroundImage.value);
     });
 
     function loadFromFile(file, toBackground) {
@@ -123,61 +134,68 @@
 </script>
 
 <template>
-    <h2 class="font-bold text-xl mt-4 mb-2">Song:</h2>
-    <label class="flex flex-row items-center gap-2 flex-wrap justify-center mb-1.5">
-        From file:
-        <input 
-            class="button py-1 font-normal max-w-[calc(100vw-16px)]"
-            type="file"
-            accept="audio/*"
-            :tabindex="tabindex"
-            @change="(e) => loadFromFile(e.target.files[0], false)"
-        >
-    </label>
-    <label class="flex flex-row items-center gap-2 flex-wrap justify-center">
-        From link:
-        <input 
-            class="input"
-            type="text"
-            :tabindex="tabindex"
-            @change="(e) => song = e.target.value" 
-        >
-    </label>
-
-    <p 
-        v-if="songStatus"
-        class="mt-2"
-    >{{ songStatus }}</p>
-
-    <div class="flex gap-3 flex-wrap justify-center mt-2">
-        <div 
-            class="flex flex-col items-center font-bold has-disabled:text-neutral-400 has-disabled:cursor-not-allowed"
-            :title="!songDuration ? 'Add a song first.' : ''"
-        >
-            {{ (Math.round(songPosition * 100) / 100).toFixed(2) + "s / " + songDuration }}s
+    <div v-if="!backgroundImageTheme">
+        <h2 class="font-bold text-xl mt-4 mb-2 text-center">Song:</h2>
+        <label class="flex flex-row items-center gap-2 flex-wrap justify-center mb-1.5">
+            From file:
             <input 
-                class="w-100 max-w-[calc(100vw-16px)] disabled:cursor-not-allowed"
-                type="range"
-                min="0"
-                step="0.01"
-                v-model="songPosition"
-                :max="songDuration"
+                class="button py-1 font-normal max-w-[calc(100vw-16px)]"
+                type="file"
+                accept="audio/*"
+                :tabindex="tabindex"
+                @change="(e) => loadFromFile(e.target.files[0], false)"
+            >
+        </label>
+        <label class="flex flex-row items-center gap-2 flex-wrap justify-center">
+            From link:
+            <input 
+                class="input"
+                type="text"
+                :tabindex="tabindex"
+                @change="(e) => song = e.target.value" 
+            >
+        </label>
+
+        <p 
+            v-if="songStatus"
+            class="mt-2"
+        >{{ songStatus }}</p>
+
+        <div class="flex gap-3 flex-wrap justify-center mt-2">
+            <div 
+                class="flex flex-col items-center font-bold has-disabled:text-neutral-400 has-disabled:cursor-not-allowed"
+                :title="!songDuration ? 'Add a song first.' : ''"
+            >
+                {{ (Math.round(songPosition * 100) / 100).toFixed(2) + "s / " + songDuration }}s
+                <input 
+                    class="w-100 max-w-[calc(100vw-16px)] disabled:cursor-not-allowed"
+                    type="range"
+                    min="0"
+                    step="0.01"
+                    v-model="songPosition"
+                    :max="songDuration"
+                    :disabled="!songDuration"
+                    :tabindex="tabindex"
+                    @input="playSong()"
+                >
+            </div>
+
+            <button
+                class="button"
                 :disabled="!songDuration"
                 :tabindex="tabindex"
-                @input="playSong()"
-            >
+                :title="!songDuration ? 'Add a song first.' : ''"
+                @click="playingSong ? stopSong() : playSong()"
+            >{{ playingSong ? 'Stop song' : 'Play song' }}</button>
         </div>
-
-        <button
-            class="button"
-            :disabled="!songDuration"
-            :tabindex="tabindex"
-            :title="!songDuration ? 'Add a song first.' : ''"
-            @click="playingSong ? stopSong() : playSong()"
-        >{{ playingSong ? 'Stop song' : 'Play song' }}</button>
     </div>
 
-    <h2 class="font-bold text-xl mt-4 mb-2">Background image:</h2>
+    <h2 :class="backgroundImageTheme ? 'font-bold text-xl mt-4' : 'font-bold text-xl mt-4 mb-2'">Background image:</h2>
+    <p 
+        v-if="backgroundImageTheme"
+        class="mb-2"
+    >(applies in the main menu and in maps that use the default background)</p>
+
     <label class="flex flex-row items-center gap-2 flex-wrap justify-center mb-1.5">
         From file:
         <input 
@@ -199,9 +217,9 @@
     </label>
     <button
         class="button mt-1.5"
-        :disabled="backgroundImage == defaultBackground"
+        :disabled="backgroundImageTheme ? backgroundImage == defaultBackground : backgroundImage == defaultBackgroundImage"
         :tabindex="tabindex"
-        :title="backgroundImage == defaultBackground ? 'This map uses the default background already.' : ''"
-        @click="backgroundImage = defaultBackground"
+        :title="(backgroundImageTheme ? backgroundImage == defaultBackground : backgroundImage == defaultBackgroundImage) ? 'This ' + (backgroundImageTheme ? 'theme' : 'map') + ' uses the default background already.' : ''"
+        @click="backgroundImageTheme ? backgroundImage = defaultBackground : backgroundImage = defaultBackgroundImage"
     >Reset to default</button>
 </template>

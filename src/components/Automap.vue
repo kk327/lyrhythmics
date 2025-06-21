@@ -1,26 +1,10 @@
 <script setup>
     import { ref, onUnmounted, watch } from 'vue';
     import defaultBackground from '@/assets/background.png'
+    import config from "@/configs/config.json";
     import PinkHeader from './PinkHeader.vue';
     import InputsAdd from './InputsAdd.vue';
     import SongAndBackgroundInputs from '@/components/SongAndBackgroundInputs.vue';
-
-    const lyrics = ref("");
-    const lyricsType = ref("text");
-    const parsedLyrics = ref([]);
-    let calculatedLyriclessParts;
-    const lyricsOffset = ref(0);
-
-    const hueRotate = ref(0);
-    const partsWithoutLyrics = ref([]);
-    const backgroundImage = ref(defaultBackground);
-
-    const songLrcName = ref("");
-    const songFileName = ref("");
-
-    const song = ref("");
-    const audio = ref(new Audio());
-    const songDuration = ref(0);
 
     const props = defineProps([
         "startData"
@@ -32,6 +16,27 @@
         "backgroundImageChanged",
         "hueRotateChanged"
     ]);
+
+    const lyrics = ref("");
+    const lyricsType = ref("text");
+    const parsedLyrics = ref([]);
+    let calculatedLyriclessParts;
+    const lyricsOffset = ref(0);
+
+    const partsWithoutLyrics = ref([]);
+    const hueRotate = ref(props.startData.hueRotate);
+    const inludeTheHueRotate = ref(false);
+
+    const theme = localStorage.getItem("theme") ? JSON.parse(localStorage.getItem("theme")) : config.defaultTheme;
+    const defaultBackgroundImage = theme.backgroundImage == "default" ? defaultBackground : theme.backgroundImage;
+    const backgroundImage = ref(props.startData.backgroundImage);
+
+    const songLrcName = ref("");
+    const songFileName = ref("");
+
+    const song = ref("");
+    const audio = ref(new Audio());
+    const songDuration = ref(0);
 
     onUnmounted(() => {
         removeEventListener("keydown", onKeydown);
@@ -134,10 +139,13 @@
     function backgroundImageSet(newBackgroundImage) {
         backgroundImage.value = newBackgroundImage;
         emit("backgroundImageChanged", newBackgroundImage);
+
+        hueRotate.value = 0;
+        emit('hueRotateChanged', hueRotate);
     }
 
     function onKeydown(e) {
-        if (e.key == "Escape" && hueRotate.value == 0 && backgroundImage.value == defaultBackground && !songDuration.value && !lyrics.value && lyricsType.value == "text") {
+        if (e.key == "Escape" && hueRotate.value == props.startData.hueRotate && backgroundImage.value == props.startData.backgroundImage && !songDuration.value && !lyrics.value && lyricsType.value == "text") {
             emit("cancel");
         }
     }
@@ -245,6 +253,7 @@
     >The lyrics will start at {{ Math.round((parsedLyrics[0].start + lyricsOffset) * 100) / 100 }}s.</p>
 
     <SongAndBackgroundInputs
+        :defaultBackgroundImage="backgroundImage"
         @backgroundImageSet="(newBackgroundImage) => backgroundImageSet(newBackgroundImage)"
         @songLoaded="(newSong, newAudio, newSongDuration, songName) => onSongLoad(newSong, newAudio, newSongDuration, songName)"
     />
@@ -279,8 +288,8 @@
 
     <label class="flex flex-col items-center">
         <h2 class="font-bold text-xl mt-4 mb-2">Background hue-rotate:</h2>
-        <p class="font-bold">{{ hueRotate }}°</p>
-        <div class="flex gap-2 mb-4 mt-1">
+        <p class="font-bold">{{ hueRotate }}° {{ backgroundImage == defaultBackgroundImage && hueRotate == theme.backgroundHueRotate ? "(theme default)" : "" }}</p>
+        <div class="flex gap-2 mt-1 mb-1">
             <input 
                 v-model="hueRotate"
                 min="0"
@@ -291,7 +300,19 @@
         </div>
     </label>
 
-    <div class="flex gap-3">
+    <label 
+        v-if="backgroundImage == defaultBackgroundImage && hueRotate == theme.backgroundHueRotate"
+        class="cursor-pointer"
+    >
+        <input 
+            class="mr-1 cursor-pointer disabled:cursor-not-allowed"
+            type="checkbox"
+            v-model="inludeTheHueRotate"
+        >
+        Include the hue-rotate in the map. Otherwise the theme default will be used.
+    </label>
+
+    <div class="flex gap-3 mt-3">
         <button
             class="button"
             @click="$emit('cancel')"
@@ -315,8 +336,8 @@
                 mapper: 'Automap' + (lyricsType == 'lrc' && lyrics.match(/(?<=\[by:).*(?=\])/) ? ' (.lrc by ' + lyrics.match(/(?<=\[by:).*(?=\])/)[0].trim() + ')' : ''),
                 additionalInfo: '',
                 song: song,
-                backgroundImage: backgroundImage == defaultBackground ? 'default' : backgroundImage,
-                backgroundFilters: [{ start: 0, hue: hueRotate, brightness: 100, transitionDuration: 0}],
+                backgroundImage: backgroundImage == defaultBackgroundImage ? 'default' : backgroundImage,
+                backgroundFilters: backgroundImage == defaultBackgroundImage && hueRotate == theme.backgroundHueRotate && !preventHueRotainludeTheHueRotateteOverriding ? [] : [{ start: 0, hue: hueRotate, brightness: 100, transitionDuration: 0}],
                 lyrics: calculateLyrics(),
                 partsWithoutLyrics: lyricsType == 'text' ? 
                                         partsWithoutLyrics.map((e) => { return { start: e.start == 0 ? 0 : e.start + 1, end: e.end - 1 }}).filter((e) => e.end > e.start) 

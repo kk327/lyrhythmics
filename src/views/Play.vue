@@ -1,6 +1,7 @@
 <script setup>
     import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
     import { useRouter } from 'vue-router';
+    import config from "@/configs/config.json";
     import MapCustomization from "@/components/MapCustomization.vue";
     import PinkHeader from '@/components/PinkHeader.vue';
 
@@ -75,6 +76,7 @@
     
     const targetFPS = localStorage.getItem("targetFPS") ? localStorage.getItem("targetFPS") : 60;
     const nonDecimalCurrentTime = localStorage.getItem("nonDecimalCurrentTime");
+    const decimalScore = localStorage.getItem("decimalScore");
     const reduceTransparency = localStorage.getItem("reduceTransparency");
     let disableBackgroundFilters = localStorage.getItem("disableBackgroundFilters");
 
@@ -92,17 +94,22 @@
 
     const additionalWordCorrectnessFeedback = ref(localStorage.getItem("additionalWordCorrectnessFeedback"));
     const scoringData = [
-        { code: "", color: "#000000", score: 0 },
-        { code: "X", color: "#ff0000", score: 0 },
-        { code: "Vv", color: "#00600f", score: 0.333 },
-        { code: "Ve", color: "#00b11b", score: 0.75 },
-        { code: "V", color: "#38ff56", score: 1 },
-        { code: "Vl", color: "#00600f", score: 0.333 },
-        { code: "~v", color: "#656200", score: 0.08325 },
-        { code: "~e", color: "#aeb000", score: 0.1875 },
-        { code: "~", color: "#fffe54", score: 0.25 },
-        { code: "~l", color: "#656200", score: 0.08325 },
+        { code: "", score: 0 },
+        { code: "X", score: 0 },
+        { code: "Vv", score: 0.333 },
+        { code: "Ve", score: 0.75 },
+        { code: "V", score: 1 },
+        { code: "Vl", score: 0.333 },
+        { code: "~v", score: 0.08325 },
+        { code: "~e", score: 0.1875 },
+        { code: "~", score: 0.25 },
+        { code: "~l", score: 0.08325 },
     ];
+
+    const theme = localStorage.getItem("theme") ? JSON.parse(localStorage.getItem("theme")) : config.defaultTheme;
+    for (let i of scoringData) {
+        i.color = theme.inputColors[i.code];
+    }
 
     const lyricsSettingList = ["capitalization", "accentLetters", "specialCharacters"];
     const saveHighscores = ref(localStorage.getItem("saveHighscores"));
@@ -610,17 +617,20 @@
             class="flex z-1 backdrop-blur-md fixed"
         >
             <div 
-                :class="reduceTransparency ? 'flex items-center justify-end [-webkit-text-stroke:0.75px_black] font-bold' : 'flex items-center justify-end'"
                 v-for="lyric, idx in typingNextVerse ? lyrics[lyricsId + 1] : lyrics[lyricsId]"
+                :class="reduceTransparency || theme.inputText.forceOutline ? 'flex items-center justify-end [-webkit-text-stroke-width:0.75px] font-bold' : 'flex items-center justify-end'"
+                :style="{ '-webkit-text-stroke-color': reduceTransparency || theme.inputText.forceOutline ? theme.inputText.outlineColor : '' }"
             >
                 <input 
-                    class="p-2 pt-1.5 text-center focus:border-white focus:backdrop-brightness-175 outline-0 border-t-2 border-white/0 placeholder-neutral-400"
+                    class="p-2 pt-1.5 text-center focus:border-white focus:backdrop-brightness-175 outline-0 border-t-2 border-white/0 placeholder-[var(--placeholderColor)]"
                     type="text"
                     autocapitalize="none"
                     autocorrect="off"
                     v-model="inputLyrics[idx]"
                     :style="{ width: calculateInputWidth(typingNextVerse ? lyrics[lyricsId + 1].length : lyrics[lyricsId].length),
-                              backgroundColor: scoringData.filter((e) => (!e.code && !correctnessStates[idx]) || e.code == correctnessStates[idx])[0].color + (reduceTransparency ? 'E6' : '66') }"
+                              backgroundColor: scoringData.filter((e) => (!e.code && !correctnessStates[idx]) || e.code == correctnessStates[idx])[0].color + (reduceTransparency ? 'E6' : '66'),
+                              color: theme.inputText.color,
+                              '--placeholderColor': theme.inputText.placeholderColor }"
                     :placeholder="lyric.word"
                     :tabindex="paused || finished ? -1 : 0"
                     @input="inputLyrics[idx].includes(' ') && !dontGoToNext ? goToNextWord(idx) : dontGoToNext = false"
@@ -683,8 +693,8 @@
         >
             <h1 class="font-bold">
                 Score: {{ lyrics.filter((e, idx) => idx < lyricsId).reduce((sum, e) => sum + e.length, 0) + checkedWord == startWord ? 
-                            "??%" 
-                            : Math.round(score / (lyrics.filter((e, idx) => idx < lyricsId).reduce((sum, e) => sum + e.length, 0) + checkedWord - startWord) * 100) + "%" }}
+                            (decimalScore ? "??.??%" : "??%") 
+                            : (decimalScore ? (score / (lyrics.filter((e, idx) => idx < lyricsId).reduce((sum, e) => sum + e.length, 0) + checkedWord - startWord) * 100).toFixed(2) : Math.floor(score / (lyrics.filter((e, idx) => idx < lyricsId).reduce((sum, e) => sum + e.length, 0) + checkedWord - startWord) * 100)) + "%" }}
             </h1>
             <p>{{ nonDecimalCurrentTime ? Math.round(time) : (Math.round(time * 100) / 100).toFixed(2) }}s / {{ Math.round(lyrics[lyrics.length - 1][lyrics[lyrics.length - 1].length - 1].delay / speed * 100) / 100 }}s</p>
             <p v-if="data.automapSongSkipping">Song: {{ (Math.round(songPosition * 100) / 100).toFixed(2) }}s</p>

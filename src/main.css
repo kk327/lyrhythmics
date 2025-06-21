@@ -9,6 +9,10 @@
         @apply bg-black/[var(--bg-40)] border-white/0 border-2 px-4 py-1 rounded-xl backdrop-blur-md text-white disabled:cursor-not-allowed disabled:text-neutral-400;
     }
 
+    .colorInput {
+        @apply cursor-pointer w-16 backdrop-blur-md [&::-webkit-color-swatch]:mx-[-2px] [&::-webkit-color-swatch]:my-[-4px] [&::-webkit-color-swatch]:border-none [&::-moz-color-swatch]:border-none;
+    }
+
     * {
         @apply accent-pink-500;
     }

@@ -23,7 +23,7 @@
         <button
             v-for="speedValue of [0.25, 0.5, 0.625, 0.75, 0.875, 1, 1.125, 1.25, 1.375, 1.5, 1.75]"
             class="cursor-pointer px-3 py-1 rounded-xl border-2 border-white/0 font-bold hover:brightness-125 hover:border-white duration-200"
-            :style="{ color: speed == speedValue ? 'var(--color-pink-400)' : 'white'}"
+            :style="{ color: speed == speedValue ? 'color-mix(in hsl, var(--color-pink-300), var(--color-pink-500))' : 'white'}"
             :tabindex="tabindex"
             @click="speed = speedValue"
         >{{ speedValue }}</button>

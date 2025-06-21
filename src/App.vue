@@ -17,10 +17,10 @@
     function updateSettings(settings) {
         hideFullscreenButton.value = settings.hideFullscreenButton;
         reduceTransparency.value = settings.reduceTransparency;
-        setTransparencies();
+        setStyles(settings);
     }
 
-    function setTransparencies() {
+    function setStyles(settings) {
         if (reduceTransparency.value) {
             document.documentElement.style.setProperty("--bg-40", "90%");
             document.documentElement.style.setProperty("--bg-60", "90%");
@@ -28,8 +28,13 @@
             document.documentElement.style.setProperty("--bg-40", "40%");
             document.documentElement.style.setProperty("--bg-60", "60%");
         }
+
+        document.documentElement.style.setProperty("--themableWhite", settings.theme.menuColors.white);
+        document.documentElement.style.setProperty("--color-pink-300", settings.theme.menuColors.brightPink);
+        document.documentElement.style.setProperty("--color-pink-500", settings.theme.menuColors.pink);
+        document.documentElement.style.setProperty("--color-violet-900", settings.theme.menuColors.purple);
     }
-    setTransparencies();
+    setStyles({ theme: localStorage.getItem("theme") ? JSON.parse(localStorage.getItem("theme")) : JSON.parse(JSON.stringify(config.defaultTheme)) });
 
     function restart(newData) {
         data.value = newData;

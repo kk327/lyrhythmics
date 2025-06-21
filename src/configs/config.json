@@ -2,5 +2,34 @@
     "platform": "",
     "commercial": false,
     "preloadMaps": false,
-    "enableFullscreenButton": false
+    "enableFullscreenButton": false,
+    "defaultTheme": {
+        "inputColors": {
+            "": "#000000",
+            "X": "#ff0000", 
+            "Vv": "#00600f",
+            "Ve": "#00b11b",
+            "V": "#38ff56",
+            "Vl": "#00600f",
+            "~v": "#656200",
+            "~e": "#aeb000",
+            "~": "#fffe54",
+            "~l": "#656200"
+        },
+        "inputText": {
+            "color": "#ffffff",
+            "placeholderColor": "#a1a1a1",
+            "outlineColor": "#000000",
+            "forceOutline": false
+        },
+        "menuColors": {
+            "white": "#ffffff",
+            "brightPink": "#fda5d5",
+            "pink": "#f6339a",
+            "purple": "#4d179a"
+        },
+        "backgroundImage": "default",
+        "backgroundHueRotate": 0,
+        "customCSS": ""
+    }
 }

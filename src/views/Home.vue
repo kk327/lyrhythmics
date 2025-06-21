@@ -1,5 +1,5 @@
 <script setup>
-    import { ref, onUnmounted, computed, watch, watchEffect, reactive } from "vue";
+    import { ref, onUnmounted, computed, watch, watchEffect, reactive, useTemplateRef } from "vue";
     import { useRouter } from 'vue-router';
     import defaultBackground from "@/assets/background.png";
     import changelog from "@/configs/changelog.json";
@@ -11,6 +11,7 @@
     import SpeedSelector from '@/components/SpeedSelector.vue';
     import LyricsCustomization from "@/components/LyricsCustomization.vue";
     import Automap from "@/components/Automap.vue";
+    import SongAndBackgroundInputs from '@/components/SongAndBackgroundInputs.vue';
 
     // uncomment and change "preloadMaps" to true in /src/configs/config.json to preload all the maps
     // Everything above is licensed under AGPLv3, the code below until the comment saying "public domain code ends here" is in public domain
@@ -87,8 +88,8 @@
     const data = ref({});
     const menu = ref("main");
     const visibleOverlay = ref("");
-    const highscoreResetWarning = ref(false);
-    const fileLoadError = ref("");
+    const resetWarning = ref("");
+    const fileLoadError = ref({});
     const forceDefaultBackground = ref(false);
     const fullscreen = ref(props.fullscreen);
     
@@ -109,6 +110,8 @@
     const releases = changelog.releases;
     const maps = ref(mapList.maps.sort((a, b) => a.name.localeCompare(b.name)));
 
+    const customCSSTextarea = useTemplateRef("customCSSTextarea");
+
     const booleanSettings = ref([
         { codeName: "skipLyricless", displayName: "Skip parts without lyrics" },
         { codeName: "autospaceByDefault", displayName: "Autospace"},
@@ -121,6 +124,7 @@
         { codeName: "disableBackgroundFilters", displayName: "Disable background filters", clarification: "in case the background changing its color or brightness causes lag" },
         { codeName: "disableLagPrevention", displayName: "Disable lag prevention", clarification: "disables checking for whether a background transition causes huge lag" },
         { codeName: "nonDecimalCurrentTime", displayName: "Non-decimal current time", clarification: "reduces the motion of the time counter" },
+        { codeName: "decimalScore", displayName: "Decimal score", clarification: "applies to the score visible in the corner of the screen when playing" },
         { codeName: "disableCaching", displayName: "Disable storing official maps in RAM", clarification: "by default after you load a map it's saved for later" },
         { codeName: "hideFullscreenButton", displayName: "Hide the fullscreen button"},
         { codeName: "disableVerseBackgroundBlur", displayName: "Disable verse background blur in the editor" },
@@ -135,7 +139,7 @@
         { name: "defaultWordLengthLimit", default: 0 }
     ];
 
-    const settings = reactive({});
+    const settings = reactive({ theme: localStorage.getItem("theme") ? JSON.parse(localStorage.getItem("theme")) : JSON.parse(JSON.stringify(config.defaultTheme)) });
 
     for (let setting of booleanSettings.value) {
         settings[setting.codeName] = localStorage.getItem(setting.codeName);
@@ -154,7 +158,7 @@
                 localStorage.setItem(setting, true);
             } else if (!settings[setting] && localStorage.getItem(setting)) {
                 if (setting == "saveHighscores" && localStorage.getItem("highscores")) {
-                    highscoreResetWarning.value = true;
+                    resetWarning.value = "highscore";
                     setTimeout(() => {
                         settings.saveHighscores = true;
                     });
@@ -171,6 +175,12 @@
                 localStorage.removeItem(setting.name);
             }
         }
+
+        if (JSON.stringify(settings.theme) != JSON.stringify(config.defaultTheme)) {
+            localStorage.setItem("theme", JSON.stringify(settings.theme));
+        } else {
+            localStorage.removeItem("theme");
+        }
     });
 
     watch(() => settings.targetFPS, () => {
@@ -179,8 +189,14 @@
     });
 
     watch(() => settings.hideFullscreenButton + settings.reduceTransparency, () => {
-        emit("settingsChanged", { hideFullscreenButton: settings.hideFullscreenButton, reduceTransparency: settings.reduceTransparency });
-    });
+        emit("settingsChanged", { hideFullscreenButton: settings.hideFullscreenButton, reduceTransparency: settings.reduceTransparency, theme: settings.theme });
+    }, { deep: true });
+
+    watch(() => data.value + selectedMapData.value, () => {
+        if (Object.keys(data.value).length + Object.keys(selectedMapData.value).length == 0) {
+            forceDefaultBackground.value = false;
+        }
+    }, { deep: true });
 
     watchEffect(() => {
         fullscreen.value = props.fullscreen;
@@ -209,7 +225,7 @@
     });
 
 
-    function askForFile() {
+    function askForFile(type) {
         const fileInput = document.createElement("input");
         fileInput.type = "file";
         fileInput.accept = "application/json";
@@ -218,7 +234,7 @@
             document.activeElement.blur();
             const reader = new FileReader();
             reader.onload = (e2) => {
-                const requiredKeys = ["name", "mapper", "additionalInfo", "song", "backgroundImage", "backgroundFilters", "lyrics", "partsWithoutLyrics", "forceskip", "id"];
+                const requiredKeys = type == "map" ? ["name", "mapper", "additionalInfo", "song", "backgroundImage", "backgroundFilters", "lyrics", "partsWithoutLyrics", "forceskip", "id"] : ["inputColors", "inputText", "menuColors", "backgroundImage", "backgroundHueRotate", "customCSS"];
 
                 let dataTemp;
                 try {    
@@ -226,7 +242,7 @@
                                     startTime: 0,
                                     speed: 1 };
                 } catch {
-                    fileLoadError.value = "The file is damaged.";
+                    fileLoadError.value = { type: type, message: "The file is damaged." };
                     return;
                 }
 
@@ -234,21 +250,25 @@
                 for (let key of requiredKeys) {
                     if (!(key in dataTemp)) {
                         hasAllKeys = false;
-                        fileLoadError.value = "The file doesn't have the required keys.";
+                        fileLoadError.value = { type: type, message: "The file doesn't have the required keys." };
                         break;
                     }
                 }
 
                 if (hasAllKeys) {
-                    forceDefaultBackground.value = false;
-                    data.value = dataTemp;
+                    if (type == "map") {
+                        forceDefaultBackground.value = false;
+                        data.value = dataTemp;
+                    } else {
+                        replaceTheme(JSON.parse(e2.target.result));
+                    }
                 }
             };
 
             if (e.target.files[0].name.match(/\.json$/)) {
                 reader.readAsText(e.target.files[0]);
             } else {
-                fileLoadError.value = "This is not a JSON file.";
+                fileLoadError.value = { type: type, message: "This is not a JSON file." };
             }
         })
     }
@@ -258,7 +278,7 @@
     })
 
     const tabindex = computed(() => {
-        return visibleOverlay.value || Object.keys(data.value).length != 0 || Object.keys(selectedMapData.value).length != 0 || fileLoadError.value ? -1 : 0;
+        return visibleOverlay.value || Object.keys(data.value).length != 0 || Object.keys(selectedMapData.value).length != 0 || Object.keys(fileLoadError.value).length ? -1 : 0;
     })
 
     function calculateInputWidth(verseLength) { 
@@ -281,23 +301,23 @@
     addEventListener("resize", onResize);    
 
     function onKeydown(e) {
-        if (e.key == "Escape" && menu.value == "songList" && Object.keys(selectedMapData.value).length == 0 && !visibleOverlay.value && !fileLoadError.value) {
+        if (e.key == "Escape" && menu.value == "songList" && Object.keys(selectedMapData.value).length == 0 && !visibleOverlay.value && !Object.keys(fileLoadError.value).length) {
             menu.value = "main";
             song.value.pause();
-        } else if ((e.key == "Escape" || e.key == "Enter") && visibleOverlay.value != "automap") {
-            if (!highscoreResetWarning.value) {
+        } else if ((e.key == "Escape" || e.key == "Enter") && visibleOverlay.value != "automap" && customCSSTextarea.value != document.activeElement) {
+            if (!resetWarning.value) {
                 if (visibleOverlay.value == "loadingMap") {
                     mapDownloadAbortController.abort();
                 }
 
                 visibleOverlay.value = "";
-                fileLoadError.value = "";
+                fileLoadError.value = {};
 
                 setTimeout(() => {
                     document.activeElement.blur();
                 }, 0);
             } else if (e.key == "Escape") {
-                highscoreResetWarning.value = false;
+                resetWarning.value = "";
             }
         }
     }
@@ -309,18 +329,12 @@
         visibleOverlay.value = "";   
     }
 
-    function closeAutomap() {
-        visibleOverlay.value = "";
-        automapBackgroundImage.value = defaultBackground;
-        automapHueRotate.value = 0;
-    }
-
     function removeHighscores() {
         for (let key of JSON.parse(localStorage.getItem("highscores"))) {
             localStorage.removeItem(key);
         }
         localStorage.removeItem("highscores");
-        highscoreResetWarning.value = false;
+        resetWarning.value = "";
         settings.saveHighscores = false;
     }
 
@@ -336,7 +350,7 @@
             } else {
                 visibleOverlay.value = "loadingMap";
                 const signal = mapDownloadAbortController.signal;
-                    forceDefaultBackground.value = false;
+                forceDefaultBackground.value = false;
 
                 await fetch("maps/" + codeName + ".json", { signal: signal })
                     .then(async (response) => { 
@@ -345,7 +359,7 @@
                             emit("cacheMap", codeName, selectedMapData.value);
                         }
                     })
-                    .catch((e) => e.name == "AbortError" ? mapDownloadAbortController = new AbortController() : fileLoadError.value = e.name)
+                    .catch((e) => e.name == "AbortError" ? mapDownloadAbortController = new AbortController() : fileLoadError.value = { type: "map", message: e.name })
                     .finally(() => visibleOverlay.value = "");
             }
         }
@@ -371,6 +385,43 @@
             song.value.pause();
         }
     }
+
+    function updateCustomCSS() {
+        document.querySelector("#customCSS").innerHTML = settings.theme.customCSS;
+    }
+    updateCustomCSS();
+
+    function exportTheme() {
+        const blob = new Blob([JSON.stringify(settings.theme)], {type: "application/json"});
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = "Lyrhythmics theme.json";
+        a.click();
+    }
+
+    function tryBackgroundImage(newBackgroundImage) {
+        const backgroundImageBackup = settings.theme.backgroundImage;
+        try {
+            settings.theme.backgroundImage = newBackgroundImage;
+            localStorage.setItem("theme", JSON.stringify(settings.theme));
+        } catch {
+            settings.theme.backgroundImage = backgroundImageBackup;
+            fileLoadError.value = { type: "image", message: "The image is too big to fit in local storage." }
+        }
+    }
+
+    function openAutomap() {
+        automapBackgroundImage.value = settings.theme.backgroundImage == "default" ? defaultBackground : settings.theme.backgroundImage;
+        automapHueRotate.value = settings.theme.backgroundHueRotate;
+        visibleOverlay.value = "automap";
+    }
+
+    function replaceTheme(newTheme) {
+        settings.theme = newTheme;
+        emit("settingsChanged", { hideFullscreenButton: settings.hideFullscreenButton, reduceTransparency: settings.reduceTransparency, theme: settings.theme });
+        updateCustomCSS();
+        resetWarning.value = "";
+    }
 </script>   
 
 <template>
@@ -378,7 +429,7 @@
         v-if="!(tabindex && thinScreen)"
         class="absolute left-0 top-0 z-5 max-w-screen"
     >
-        <div class="relative right-4 bottom-2 bg-pink-500 font-bold text-5xl text-white [text-shadow:0.1em_0.06em_var(--color-violet-900)] skew-x-[-20deg] border-white border-4 border-l-0">
+        <div class="relative right-4 bottom-2 bg-pink-500 font-bold text-5xl text-[var(--themableWhite)] [text-shadow:0.1em_0.06em_var(--color-violet-900)] skew-x-[-20deg] border-[var(--themableWhite)] border-4 border-l-0">
             <div class="border-violet-900 border-4 border-l-0 py-4 pr-8 pl-10">
                 <p class="skew-x-5">Lyrhythmics</p>
             </div>
@@ -389,22 +440,36 @@
     <img
         class="fixed h-[calc(100vh+50px)] top-[-25px] w-screen object-cover select-none z-[-10]" 
         :src="forceDefaultBackground ?
-                defaultBackground
+                (settings.theme.backgroundImage == 'default' ? defaultBackground : settings.theme.backgroundImage)
                 : visibleOverlay == 'automap' ?
                     automapBackgroundImage 
-                    : Object.keys(data).length != 0 ?
-                        data.backgroundImage
-                        : Object.keys(selectedMapData).length != 0 ?
-                            selectedMapData.backgroundImage
-                            : defaultBackground"
-        :style="{ filter: settings.disableBackgroundFilters ? '' : 'hue-rotate(' + (
-            visibleOverlay == 'automap' ?
+                    : Object.keys(data).length ?
+                        (data.backgroundImage == 'default' ? settings.theme.backgroundImage : data.backgroundImage)
+                        : Object.keys(selectedMapData).length ?
+                            (selectedMapData.backgroundImage == 'default' ? settings.theme.backgroundImage : selectedMapData.backgroundImage)
+                            : settings.theme.backgroundImage == 'default' ?
+                                defaultBackground
+                                : settings.theme.backgroundImage"
+        :style="{ filter: settings.disableBackgroundFilters ? 
+                            (visibleOverlay != 'automap' && !Object.keys(data).length && !Object.keys(selectedMapData).length ? 
+                                'hue-rotate(' + settings.theme.backgroundHueRotate + 'deg)' 
+                                : '') 
+                            : 'hue-rotate(' +
+            (visibleOverlay == 'automap' ?
                 automapHueRotate + 'deg)'
-                : Object.keys(data).length != 0 && data.backgroundFilters.length && data.backgroundFilters[0].start == 0 ?
-                    data.backgroundFilters[0].hue + 'deg) brightness(' + data.backgroundFilters[0].brightness / 100 + ')'
-                    : Object.keys(selectedMapData).length != 0 && selectedMapData.backgroundFilters.length && selectedMapData.backgroundFilters[0].start == 0 ?
-                        selectedMapData.backgroundFilters[0].hue + 'deg) brightness(' + selectedMapData.backgroundFilters[0].brightness / 100 + ')'
-                        : '0deg)') }"
+                : Object.keys(data).length ? 
+                    (data.backgroundFilters.length && data.backgroundFilters[0].start == 0 ?
+                        data.backgroundFilters[0].hue + 'deg) brightness(' + data.backgroundFilters[0].brightness / 100 + ')'
+                        : data.backgroundFilters.length || data.backgroundImage != 'default' ? 
+                            '0deg)'
+                            : settings.theme.backgroundHueRotate + 'deg)')
+                    : Object.keys(selectedMapData).length ?
+                        (selectedMapData.backgroundFilters.length && selectedMapData.backgroundFilters[0].start == 0 ?
+                            selectedMapData.backgroundFilters[0].hue + 'deg) brightness(' + selectedMapData.backgroundFilters[0].brightness / 100 + ')'
+                            : selectedMapData.backgroundFilters.length || selectedMapData.backgroundImage != 'default' ? 
+                                '0deg)' 
+                                : settings.theme.backgroundHueRotate + 'deg)')
+                        : settings.theme.backgroundHueRotate + 'deg)') }"
         @error="forceDefaultBackground = true"
         alt="Background"
         draggable="false"
@@ -427,7 +492,7 @@
             <PinkButton 
                 text="Automap"
                 :tabindex="tabindex"
-                @click="visibleOverlay = 'automap'"
+                @click="openAutomap()"
             />
 
             <PinkButton
@@ -439,7 +504,7 @@
             <PinkButton 
                 text="Load map"
                 :tabindex="tabindex"
-                @click="askForFile()"
+                @click="askForFile('map')"
             />
 
             <PinkButton 
@@ -475,19 +540,12 @@
                 @mouseleave="stopSongSample()"
             />
             
-            <button 
-                class="relative sm:left-28 w-full sm:w-auto"
+            <PinkButton 
+                text="Back"
+                :purple="true"
                 :tabindex="tabindex"
                 @click="menu = 'main'"
-            >
-                <div 
-                    class="w-full sm:w-auto cursor-pointer relative bg-white font-bold text-3xl text-violet-900 sm:skew-x-[-20deg] border-white border-y-3 border-x-0 sm:border-l-3 right-0 group hover:sm:scale-133 hover:sm:right-[20%] hover:sm:my-5 duration-300 text-center sm:text-right z-1"
-                >
-                    <div class="border-violet-900 border-y-3 border-x-0 sm:border-l-3 py-1.75 sm:pr-32 sm:pl-6">
-                        <p class="skew-x-[-15deg] sm:skew-x-5">Back</p>
-                    </div>
-                </div>
-            </button>
+            />
 
             <aside :class="config.enableFullscreenButton && !settings.hideFullscreenButton && !fullscreen ? 'sm:fixed text-white bottom-15 left-2 bg-black/[var(--bg-40)] py-1 px-2 sm:rounded-xl backdrop-blur-md z-7 w-full sm:w-193 sm:max-w-[calc(100%-750px)] min-w-50 text-center sm:text-left' : 'sm:fixed text-white bottom-2 left-2 bg-black/[var(--bg-40)] py-1 px-2 sm:rounded-xl backdrop-blur-md z-7 w-full sm:w-193 sm:max-w-[calc(100%-750px)] min-w-50 text-center sm:text-left'">
                 This is the official list of mapped songs. Only songs with a license that allows using them are here. If you want to play a map with a song that isn't here, you can use the 
@@ -521,9 +579,9 @@
         @cancel="selectedMapData = {}"
     />
 
-    <!-- automap, settings, about, changelog, mobile warning, loading map, file load errors -->
+    <!-- automap, settings, about, changelog, mobile warning, loading map -->
     <div
-        v-if="visibleOverlay || fileLoadError"
+        v-if="visibleOverlay"
         class="fixed left-0 w-screen h-dvh flex justify-center items-center text-white z-12"
     >   
         <div class="fixed w-screen h-dvh bg-black/[var(--bg-60)] backdrop-blur-xs"></div> 
@@ -533,9 +591,10 @@
             class="flex flex-col items-center max-h-full w-full p-2 overflow-y-auto z-13"
         >
             <Automap 
+                :startData="{ backgroundImage: automapBackgroundImage, hueRotate: settings.theme.backgroundHueRotate }"
                 @hueRotateChanged="(newHueRotate) => automapHueRotate = newHueRotate"
                 @backgroundImageChanged="(newBackgroundImage) => automapBackgroundImage = newBackgroundImage"
-                @cancel="closeAutomap()"
+                @cancel="visibleOverlay = ''"
                 @setData="(newData) => automapSetData(newData)"
             />
         </div>
@@ -548,6 +607,11 @@
                 class="mb-[-4px]"
                 text="Settings"
             />
+
+            <p class="mt-7">
+                When you change the settings they will be saved in your device's local storage.
+                <br>Highscores will also be saved there if you enable them.
+            </p>
 
             <div class="flex flex-row items-center mt-5 gap-3 max-w-full">
                 <hr class="w-25 border-t-3">
@@ -572,7 +636,7 @@
                     class="cursor-pointer"
                     type="checkbox"
                     v-model="settings[setting.codeName]"
-                    :tabindex="highscoreResetWarning ? -1 : 0"
+                    :tabindex="resetWarning || Object.keys(fileLoadError).length ? -1 : 0"
                 >
             </label>
 
@@ -585,7 +649,7 @@
                     min="20"
                     max="240"
                     v-model="settings.targetFPS"
-                    :tabindex="highscoreResetWarning ? -1 : 0"
+                    :tabindex="resetWarning || Object.keys(fileLoadError).length ? -1 : 0"
                     @change="(e) => e.target.value > 240 ? settings.targetFPS = 240 : e.target.value < 20 || isNaN(parseFloat(e.target.value)) ? settings.targetFPS = 20 : settings.targetFPS = Math.round(e.target.value)"
                 >
             </label>
@@ -598,7 +662,7 @@
 
             <SpeedSelector
                 :defaultSpeed="settings.defaultSpeed"
-                :tabindex="highscoreResetWarning ? -1 : 0"
+                :tabindex="resetWarning || Object.keys(fileLoadError).length ? -1 : 0"
                 @changed="(newSpeed) => settings.defaultSpeed = newSpeed"
             />
 
@@ -608,14 +672,14 @@
                     class="cursor-pointer"
                     type="checkbox"
                     v-model="settings.skipLyricless"
-                    :tabindex="highscoreResetWarning ? -1 : 0"
+                    :tabindex="resetWarning || Object.keys(fileLoadError).length ? -1 : 0"
                 >
             </label>
 
             <LyricsCustomization 
                 variant="gamewide"
                 :default="settings"
-                :tabindex="highscoreResetWarning ? -1 : 0"
+                :tabindex="resetWarning || Object.keys(fileLoadError).length ? -1 : 0"
                 :lyrics="[]"
                 @settingChanged="(name, value) => settings[name] = value"
             />
@@ -629,7 +693,7 @@
                     min="0"
                     max="25"
                     v-model="settings.defaultWordLengthLimit"
-                    :tabindex="highscoreResetWarning ? -1 : 0"
+                    :tabindex="resetWarning || Object.keys(fileLoadError).length ? -1 : 0"
                     @change="(e) => e.target.value > 25 ? settings.defaultWordLengthLimit = 25 : e.target.value < 0 || isNaN(parseFloat(e.target.value)) ? settings.defaultWordLengthLimit = 0 : settings.defaultWordLengthLimit = Math.round(e.target.value)"
                 >
             </label>
@@ -640,43 +704,225 @@
                     class="cursor-pointer"
                     type="checkbox"
                     v-model="settings.autospaceByDefault"
-                    :tabindex="highscoreResetWarning ? -1 : 0"
+                    :tabindex="resetWarning || Object.keys(fileLoadError).length ? -1 : 0"
                 >
             </label>
 
-            <p class="mb-3 mt-7">
-                When you change a setting it will be saved in your device's local storage.
-                <br>Highscores will also be saved there if you enable them.
+            <div class="flex flex-row items-center mt-8 gap-3 max-w-full">
+                <hr class="w-25 border-t-3">
+                <h1 class="font-bold text-2xl">Theme</h1>
+                <hr class="w-25 border-t-3">
+            </div>
+
+            <div class="flex gap-3 mt-4">
+                <button
+                    class="button"
+                    :tabindex="resetWarning || Object.keys(fileLoadError).length ? -1 : 0"
+                    :disabled="JSON.stringify(config.defaultTheme) == JSON.stringify(settings.theme)"
+                    :title="JSON.stringify(config.defaultTheme) == JSON.stringify(settings.theme) ? 'You\'re using the default theme.' : ''"
+                    @click="exportTheme()"
+                >Export theme</button>
+
+                <button
+                    class="button"
+                    :tabindex="resetWarning || Object.keys(fileLoadError).length ? -1 : 0"
+                    :disabled="JSON.stringify(config.defaultTheme) == JSON.stringify(settings.theme)"
+                    :title="JSON.stringify(config.defaultTheme) == JSON.stringify(settings.theme) ? 'You\'re using the default theme already.' : ''"
+                    @click="resetWarning = 'theme'"
+                >Reset theme to default</button>
+
+                <button
+                    class="button"
+                    :tabindex="resetWarning || Object.keys(fileLoadError).length ? -1 : 0"
+                    @click="askForFile('theme')"
+                >Import theme</button>
+            </div>
+
+            <h2 class="font-bold text-xl mt-4 mb-2">Input colors:</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th class="border-t-0 border-l-0"></th>
+                        <th class="border-t-0">Very early</th>
+                        <th class="border-t-0">Early</th>
+                        <th class="border-t-0">Perfect</th>
+                        <th class="border-t-0 border-r-0">Late</th>
+                    </tr>
+                </thead>
+                
+                <tbody>
+                    <tr>
+                        <th class="border-l-0">Correct</th>
+                        <td 
+                            v-for="code, idx in ['Vv', 'Ve', 'V', 'Vl']"
+                            class="p-0"
+                            :style="{ borderRightWidth: idx == 3 ? '0px' : '1px' }"
+                        >
+                            <div class="flex">
+                                <input 
+                                    class="colorInput opacity-[var(--bg-40)] w-full"
+                                    type="color"
+                                    v-model="settings.theme.inputColors[code]"
+                                    :tabindex="resetWarning || Object.keys(fileLoadError).length ? -1 : 0"
+                                >
+                            </div>
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <th class="border-b-0 border-l-0">Typo</th>
+                        <td 
+                            v-for="code, idx in ['~v', '~e', '~', '~l']"
+                            class="p-0 border-b-0"
+                            :style="{ borderRightWidth: idx == 3 ? '0px' : '1px' }"
+                        >
+                            <div class="flex">
+                                <input 
+                                    class="colorInput opacity-[var(--bg-40)] w-full"
+                                    type="color"
+                                    v-model="settings.theme.inputColors[code]"
+                                    :tabindex="resetWarning || Object.keys(fileLoadError).length ? -1 : 0"
+                                >
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <label class="flex gap-1.5 items-center mt-2">
+                Wrong:
+                <input 
+                    class="colorInput opacity-[var(--bg-40)]"
+                    type="color"
+                    v-model="settings.theme.inputColors['X']"
+                    :tabindex="resetWarning || Object.keys(fileLoadError).length ? -1 : 0"
+                >
+            </label>
+
+            <label class="flex gap-1.5 items-center mt-2">
+                Not checked:
+                <input 
+                    class="colorInput opacity-[var(--bg-40)]"
+                    type="color"
+                    v-model="settings.theme.inputColors['']"
+                    :tabindex="resetWarning || Object.keys(fileLoadError).length ? -1 : 0"
+                >
+            </label>
+
+            <h2 class="font-bold text-xl mt-4">Input text:</h2>
+            <p class="mb-2">(applies to the inputs that are at the top of the screen when playing)</p>
+
+            <label 
+                v-for="color in [{ codeName: 'color', displayName: 'Color' }, 
+                                 { codeName: 'placeholderColor', displayName: 'Placeholder color' }, 
+                                 { codeName: 'outlineColor', displayName: 'Outline color' }]"
+                class="flex gap-1.5 items-center mb-2"
+            >
+                {{ color.displayName }}:
+                <input 
+                    class="colorInput"
+                    type="color"
+                    v-model="settings.theme.inputText[color.codeName]"
+                    :tabindex="resetWarning || Object.keys(fileLoadError).length ? -1 : 0"
+                >
+            </label>
+
+            <label class="cursor-pointer">
+                <input 
+                    class="mr-1 cursor-pointer disabled:cursor-not-allowed"
+                    type="checkbox"
+                    v-model="settings.theme.inputText.forceOutline"
+                    :tabindex="resetWarning || Object.keys(fileLoadError).length ? -1 : 0"
+                >
+                Force outline
+            </label>
+            <p class="mb-2">(normally the outline is only visible when "Reduce background transparency" is enabled)</p>
+
+            <h2 class="font-bold text-xl mt-4 mb-2">Menu colors:</h2>
+            <div class="flex gap-3 mb-2">
+                <input
+                    v-for="color in ['white', 'brightPink', 'pink', 'purple']" 
+                    class="colorInput"
+                    type="color"
+                    v-model="settings.theme.menuColors[color]"
+                    :tabindex="resetWarning || Object.keys(fileLoadError).length ? -1 : 0"
+                    @change="$emit('settingsChanged', { hideFullscreenButton: settings.hideFullscreenButton, reduceTransparency: settings.reduceTransparency, theme: settings.theme });"
+                >
+            </div>
+
+            <SongAndBackgroundInputs
+                :tabindex="resetWarning || Object.keys(fileLoadError).length ? -1 : 0"
+                :defaultBackgroundImage="settings.theme.backgroundImage == 'default' ? defaultBackground : settings.theme.backgroundImage"
+                :backgroundImageTheme="true"
+                @backgroundImageSet="(newBackgroundImage) => tryBackgroundImage(newBackgroundImage)"
+            />
+
+            <label class="flex flex-col items-center">
+                <h2 class="font-bold text-xl mt-6">Background hue-rotate:</h2>
+                <p class="mb-2">(main menu + maps that use the default background and have no background filters)</p>
+                <p class="font-bold">{{ settings.theme.backgroundHueRotate }}°</p>
+                <div :class="settings.disableBackgroundFilters ? 'flex gap-2 mb-1 mt-1' : 'flex gap-2 mb-2 mt-1'">
+                    <input 
+                        v-model="settings.theme.backgroundHueRotate"
+                        min="0"
+                        max="360"
+                        type="range"
+                        :tabindex="resetWarning || Object.keys(fileLoadError).length ? -1 : 0"
+                    >
+                </div>
+            </label>
+            <p v-if="settings.disableBackgroundFilters">As you enabled the "Disable background filters" setting, this will only apply in the main menu.</p>
+
+            <label class="flex flex-col items-center mt-4">
+                <h2 class="font-bold text-xl mb-2">Custom CSS code:</h2>
+                <textarea 
+                    class="bg-white p-2 rounded-xl w-133 max-w-[calc(100vw-16px)] h-50 text-black"
+                    ref="customCSSTextarea"
+                    v-model="settings.theme.customCSS"
+                    :tabindex="resetWarning || Object.keys(fileLoadError).length ? -1 : 0"
+                    @change="updateCustomCSS()"
+                ></textarea>
+            </label>
+            <p class="mt-1 mb-3">
+                Menu color variables: --themableWhite --color-pink-300 --color-pink-500 --color-violet-900
+                <br>Classes: .input .button .colorInput (other elements use Tailwind classes)
             </p>
 
             <button
                 class="button"
-                :tabindex="highscoreResetWarning ? -1 : 0"
+                :tabindex="resetWarning || Object.keys(fileLoadError).length ? -1 : 0"
                 @click="visibleOverlay = ''"
             >Done</button>
 
             <div
-                v-if="highscoreResetWarning"
+                v-if="resetWarning"
                 class="fixed left-0 top-0 w-screen h-dvh flex justify-center items-center text-white z-14"
             >   
                 <div class="fixed w-screen h-dvh bg-black/[var(--bg-60)] backdrop-blur-xs"></div>
                 
                 <div class="flex flex-col items-center max-h-full w-full p-2 overflow-y-auto z-13 text-center"> 
                     <h2 class="font-bold text-lg z-15">Warning!</h2>
-                    <p class="z-15">
+                    <p 
+                        v-if="resetWarning == 'highscore'"
+                        class="z-15"
+                    >
                         Disabling saving highscores will remove the highscores that you saved since you enabled it.
                         <br>Are you sure you want to remove them and disable saving highscores?
                     </p>
+                    <p
+                        v-else
+                        class="z-15"
+                    >Are you sure you want to reset the theme to default?</p>
 
                     <div class="flex gap-3 mt-2.5">
                         <button
                             class="button"
-                            @click="highscoreResetWarning = ''"
+                            @click="resetWarning = ''"
                         >Cancel</button>
 
                         <button
                             class="button"
-                            @click="removeHighscores()"
+                            @click="resetWarning == 'highscore' ? removeHighscores() : replaceTheme(config.defaultTheme)"
                         >Confirm</button>
                     </div>
                 </div>
@@ -696,7 +942,7 @@
 
             <h2 class="text-xl font-bold my-1.5">Score system</h2>
             <p class="max-w-275">
-                The full score for a perfect word is 1, for a word with a typo it's 0.25, and for a wrong word it's 0. However that is later reduced by the timing. If you start typing during the word and finish before it passes, you get the entirety of that score. If you start typing a word early, that is before the earlier word passed, you get 75% of that score. Although only when the even earlier word has passed, but if that isn't the case, then that's starting typing a word very early, which gives even less score. You can also finish a word late, by the time the next word passes. In both of the cases you get 1/3 of the score. The score that you see is the percentage of how much score you got out of how much was possible to get. When a word passes, the input's color changes. Green is correct, yellow is typo, red is wrong. The brightest shade means perfectly on time, the darker shade is started typing early, and the darkest shade is finished late or started typing very early. Red doesn't have shades. If it's hard for you to differentiate between the colors, you can enable the "Additional word correctness feedback" setting which shows a text indicator on the right side of the input. V is correct, ~ means typo, X is wrong. v means very early, e means early, and l means late. A typo is when you either missed a letter, added an additional letter, typed one wrong letter, or swapped the places of two letters that are next to eachother. It also has to be on a word that has at least 3 characters. Examples on the word score: scre, scoire, sxore, scoer.
+                The full score for a perfect word is 1, for a word with a typo it's 0.25, and for a wrong word it's 0. However that is later reduced by the timing. If you start typing during the word and finish before it passes, you get the entirety of that score. If you start typing a word early, that is before the earlier word passed, you get 75% of that score. Although only when the even earlier word has passed, but if that isn't the case, then that's starting typing a word very early, which gives even less score. You can also finish a word late, by the time the next word passes. In both of the cases you get 1/3 of the score. The score that you see is the percentage of how much score you got out of how much was possible to get. When a word passes, the input's color changes. Green is correct, yellow is typo, red is wrong. The brightest shade means perfectly on time, the darker shade is started typing early, and the darkest shade is finished late or started typing very early. Red doesn't have shades. If it's hard for you to differentiate between the colors, you can enable the "Additional word correctness feedback" setting which shows a text indicator on the right side of the input, or you can change the colors in the theme which is also done in the settings. V is correct, ~ means typo, X is wrong. v means very early, e means early, and l means late. A typo is when you either missed a letter, added an additional letter, typed one wrong letter, or swapped the places of two letters that are next to eachother. It also has to be on a word that has at least 3 characters. Examples on the word score: scre, scoire, sxore, scoer.
             </p>
 
             <h2 class="text-xl font-bold my-1.5">Song list</h2>
@@ -779,16 +1025,19 @@
                 @click="cancelMapDownload()"
             >Cancel</button>
         </div>
+    </div>
 
-        <div 
-            v-else-if="fileLoadError"
-            class="flex flex-col items-center max-h-full w-full p-2 overflow-y-auto z-13"
-        >
-            <h2 class="font-bold text-lg">An error occured while loading the map.</h2>
-            <p>{{ fileLoadError }}</p>
+    <div
+        v-if="Object.keys(fileLoadError).length"
+        class="fixed left-0 w-screen h-dvh flex justify-center items-center text-white z-12"
+    >   
+        <div class="fixed w-screen h-dvh bg-black/[var(--bg-60)] backdrop-blur-xs"></div> 
+        <div class="flex flex-col items-center max-h-full w-full p-2 overflow-y-auto z-13">
+            <h2 class="font-bold text-lg">An error occured while loading the {{ fileLoadError.type }}.</h2>
+            <p>{{ fileLoadError.message }}</p>
             <button
                 class="button mt-2.5"
-                @click="fileLoadError = ''"
+                @click="fileLoadError = {}"
             >Okay</button>
         </div>
     </div>

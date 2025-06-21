@@ -1,7 +1,8 @@
 <script setup>
     import { ref, watch, computed, onMounted, onUnmounted} from 'vue';
     import { useRouter } from 'vue-router';
-    import defaultBackground from '@/assets/background.png'
+    import defaultBackground from '@/assets/background.png';
+    import config from "@/configs/config.json";
     import Play from './Play.vue';
     import AddLyricsPanel from '@/components/AddLyricsPanel.vue';
     import InputsAdd from '@/components/InputsAdd.vue';
@@ -88,7 +89,11 @@
 
     const song = ref("");
     const songDuration = ref(0);
-    const backgroundImage = ref(props.data ? props.data.backgroundImage : defaultBackground);
+
+    const theme = localStorage.getItem("theme") ? JSON.parse(localStorage.getItem("theme")) : config.defaultTheme;
+    const defaultBackgroundImage = theme.backgroundImage == "default" ? defaultBackground : theme.backgroundImage;
+    const backgroundImage = ref(props.data ? props.data.backgroundImage : defaultBackgroundImage);
+    
     const backgroundFilters = ref(props.data ? props.data.backgroundFilters : []);
     const partsWithoutLyrics = ref(props.data ? props.data.partsWithoutLyrics : []);
     const forceskip = ref(props.data ? props.data.forceskip : false);
@@ -106,8 +111,8 @@
     })
 
     onMounted(() => { // so that the watcher reacts
+        setBackgroundFilters();
         if (props.data) {
-            setBackgroundFilters();
             song.value = props.data.song;
 
             async function loadAudio() {
@@ -303,7 +308,7 @@
     function setBackgroundFilters() {
         if (!disableBackgroundFilters) {
             const virtualFilters = (!backgroundFilters.value.length ?
-                                        [{ start: 0, hue: 0, brightness: 100, transitionDuration: 0}] 
+                                        [{ start: 0, hue: backgroundImage.value == defaultBackgroundImage ? theme.backgroundHueRotate : 0, brightness: 100, transitionDuration: 0}] 
                                         : backgroundFilters.value[0].start == 0 ? 
                                             backgroundFilters.value : 
                                             [{ start: 0, hue: 0, brightness: 100, transitionDuration: 0}, ...backgroundFilters.value]);
@@ -609,7 +614,7 @@
                 additionalInfo: additionalInfo.value,
                 song: song.value,
                 backgroundImage: backgroundImage.value,
-                backgroundFilters: backgroundFilters.value,
+                backgroundFilters: !backgroundFilters.value.length && backgroundImage.value == defaultBackgroundImage ? [{ start: 0, hue: theme.backgroundHueRotate, brightness: 100, transitionDuration: 0}] : backgroundFilters.value,
                 lyrics: lyrics.value,
                 partsWithoutLyrics: partsWithoutLyrics.value,
                 forceskip: forceskip.value,
@@ -635,7 +640,7 @@
             mapper: mapper.value,
             additionalInfo: additionalInfo.value,
             song: song.value,
-            backgroundImage: backgroundImage.value == defaultBackground ? "default" : backgroundImage.value,
+            backgroundImage: backgroundImage.value == defaultBackgroundImage ? "default" : backgroundImage.value,
             backgroundFilters: backgroundFilters.value,
             lyrics: lyrics.value,
             partsWithoutLyrics: partsWithoutLyrics.value,
@@ -1046,7 +1051,7 @@
         <label class="flex items-center flex-col">
             Additional information (can include links):
             <textarea 
-                class="input my-1 w-100 max-w-[calc(100vw-16px)] h-20"
+                class="bg-white p-2 rounded-xl w-133 max-w-[calc(100vw-16px)] h-50 text-center text-black my-1"
                 type="text"
                 :tabindex="tabindex"
                 v-model="additionalInfo"

@@ -1,5 +1,18 @@
 { 
     "releases": [{
+        "version": "1.5.0",
+        "date": "June 21th, 2025",
+        "changes": [
+            "Added theming. You can access it in the settings.",
+            "The score visible in the corner of the screen when playing is now always rounded to the lower number.",
+            "Added a setting to disable rounding of the score to a full number when playing.",
+            "The selected speed color in the speed selector is now a mix of two standard colors instead of a unique one.",
+            "The additional info textarea input in the map editor settings is now styled like other textareas.",
+            "Added information about customizing input colors as an alternative to the \"Additional word correctness feedback\" setting to the about page.",
+            "The information about settings being saved in local storage is now at the top of the settings menu instead of the bottom of it and has been reworded a bit because when you change a theme setting the entire theme gets saved."
+        ]
+    },
+    {
         "version": "1.4.4",
         "date": "June 15th, 2025",
         "changes": [

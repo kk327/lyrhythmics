@@ -2,6 +2,7 @@
     import { ref, computed, onUnmounted, watchEffect } from "vue";
     import { useRouter } from "vue-router";
     import defaultBackground from "@/assets/background.png";
+    import config from "@/configs/config.json";
     import PinkHeader from '@/components/PinkHeader.vue';
     import SpeedSelector from "./SpeedSelector.vue";
     import LyricsCustomization from './LyricsCustomization.vue';
@@ -76,6 +77,8 @@
     let controlHeld = false;
     let enterHeld = false;
 
+    const theme = localStorage.getItem("theme") ? JSON.parse(localStorage.getItem("theme")) : config.defaultTheme;
+
     watchEffect(() => {
         highscore.value = localStorage.getItem(props.data.id + "-" + speed.value + "-" + startTime.value + "-" + skipLyricless.value + "-" + lyricsSettingList.map((e) => lyricsSettings.value[e] ? '1' : '0').join("") + (wordLengthLimit.value ? "-wll" + wordLengthLimit.value : ""));
     });
@@ -106,7 +109,7 @@
             controlHeld = true;
         } else if (e.key == "Escape") {
             if (props.pausedVariant) {
-                emit("continue", continueWithSettings.value && (props.data.speed != speed.value || props.data.skipLyricless != skipLyricless.value || JSON.stringify(props.data.lyricsSettings) != JSON.stringify(lyricsSettings.value) || props.data.wordLengthLimit != wordLengthLimit.value || props.data.autospace != autospace.value) ? buildNewData() : {});
+                emit("continue", continueWithSettings.value && (props.data.speed != speed.value || props.data.skipLyricless != skipLyricless.value || JSON.stringify(props.data.lyricsSettings) != JSON.stringify(lyricsSettings.value) || props.data.wordLengthLimit != wordLengthLimit.value || props.data.autospace != autospace.value) ? buildNewData(false) : {});
             } else {
                 emit("cancel");
             }
@@ -114,9 +117,9 @@
 
         if (controlHeld && enterHeld) {
             if (props.pausedVariant) {
-                emit("continue", continueWithSettings.value && (props.data.speed != speed.value || props.data.skipLyricless != skipLyricless.value || JSON.stringify(props.data.lyricsSettings) != JSON.stringify(lyricsSettings.value) || props.data.wordLengthLimit != wordLengthLimit.value || props.data.autospace != autospace.value) ? buildNewData() : {});
+                emit("continue", continueWithSettings.value && (props.data.speed != speed.value || props.data.skipLyricless != skipLyricless.value || JSON.stringify(props.data.lyricsSettings) != JSON.stringify(lyricsSettings.value) || props.data.wordLengthLimit != wordLengthLimit.value || props.data.autospace != autospace.value) ? buildNewData(false) : {});
             } else {
-                emit("setData", buildNewData());
+                emit("setData", buildNewData(true));
                 router.push("/play");
             }
         }
@@ -132,7 +135,7 @@
     }
     addEventListener("keyup", onKeyUp);
 
-    function buildNewData() {
+    function buildNewData(overrideBackgroundFilters) {
         return { ...props.data,
                     speed: speed.value,
                     startTime: startTime.value,
@@ -140,7 +143,12 @@
                     lyricsSettings: lyricsSettings.value,
                     wordLengthLimit: wordLengthLimit.value,
                     autospace: autospace.value,
-                    backgroundImage: props.data.backgroundImage == "default" ? defaultBackground : props.data.backgroundImage };
+                    backgroundFilters: !props.data.backgroundFilters.length && overrideBackgroundFilters && props.data.backgroundImage == "default" ? [{ start: 0, hue: theme.backgroundHueRotate, brightness: 100, transitionDuration: 0}] : props.data.backgroundFilters,
+                    backgroundImage: props.data.backgroundImage == "default" ? 
+                                        (theme.backgroundImage == "default" ? 
+                                            defaultBackground
+                                            : theme.backgroundImage)
+                                        : props.data.backgroundImage };
     }
 
     function redirectAndSetData(link, data) {
@@ -188,14 +196,14 @@
 
                 <button
                     class="button h-fit"
-                    @click="redirectAndSetData('/editor', buildNewData())"
+                    @click="redirectAndSetData('/editor', buildNewData(false))"
                 >
                     Edit
                 </button>
                 
                 <button
-                    class="button not-hover:border-pink-500 text-pink-500 bg-white px-8 text-xl"
-                    @click="redirectAndSetData('/play', buildNewData())"
+                    class="button border-[var(--themableWhite)] not-hover:border-pink-500 text-pink-500 bg-[var(--themableWhite)] px-8 text-xl"
+                    @click="redirectAndSetData('/play', buildNewData(true))"
                 >
                     Play
                 </button>
@@ -229,15 +237,15 @@
                 
                 <button
                     to="/play"
-                    class="button not-hover:border-pink-500 text-pink-500 bg-white px-8 text-xl"
-                    @click="$emit('continue', continueWithSettings && (props.data.speed != speed || props.data.skipLyricless != skipLyricless || JSON.stringify(props.data.lyricsSettings) != JSON.stringify(lyricsSettings) || props.data.wordLengthLimit != wordLengthLimit || props.data.autospace != autospace) ? buildNewData() : {})"
+                    class="button border-[var(--themableWhite)] not-hover:border-pink-500 text-pink-500 bg-[var(--themableWhite)] px-8 text-xl"
+                    @click="$emit('continue', continueWithSettings && (props.data.speed != speed || props.data.skipLyricless != skipLyricless || JSON.stringify(props.data.lyricsSettings) != JSON.stringify(lyricsSettings) || props.data.wordLengthLimit != wordLengthLimit || props.data.autospace != autospace) ? buildNewData(false) : {})"
                 >
                     Continue
                 </button>
                 
                 <button
                     :class="data.downloadButton ? 'button h-fit' : 'button h-fit sm:mr-4'"
-                    @click="$emit('setData', buildNewData())"
+                    @click="$emit('setData', buildNewData(false))"
                 >
                     Restart
                 </button>
