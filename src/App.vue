@@ -14,6 +14,17 @@
 
     addEventListener("fullscreenchange", () => fullscreen.value = !fullscreen.value);
 
+    if (Array.isArray(JSON.parse(localStorage.getItem("highscores")))) { // 1.5.1 migration
+        for (let key of JSON.parse(localStorage.getItem("highscores"))) {
+            localStorage.setItem(key + "-as", localStorage.getItem(key));
+        }
+
+        localStorage.setItem("highscores", JSON.stringify({
+            keys: JSON.parse(localStorage.getItem("highscores")).flatMap(e => [e, e + "-as"]),
+            compatibilityVersion: 2
+        }));
+    }
+
     function updateSettings(settings) {
         hideFullscreenButton.value = settings.hideFullscreenButton;
         reduceTransparency.value = settings.reduceTransparency;

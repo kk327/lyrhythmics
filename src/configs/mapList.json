@@ -79,6 +79,30 @@
             "length": 69,
             "lyriclessLength": 13,
             "commercialAllowed": true
+        },
+        {
+            "name": "DJStriden - Light The World Pt II",
+            "codeName": "lightTheWorldPt2",
+            "wpm": 70,
+            "length": 142,
+            "lyriclessLength": 14,
+            "commercialAllowed": true
+        },
+        {
+            "name": "MTSsmitty - Wings of Goodbye",
+            "codeName": "wingsOfGoodbye",
+            "wpm": 106,
+            "length": 104,
+            "lyriclessLength": 20,
+            "commercialAllowed": true
+        },
+        {
+            "name": "Cloudier - A Centimetre Apart",
+            "codeName": "aCentimetreApart",
+            "wpm": 91,
+            "length": 265,
+            "lyriclessLength": 97,
+            "commercialAllowed": false
         }
     ]
 }

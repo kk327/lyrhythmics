@@ -24,7 +24,10 @@
     import anAngelFallsJSON from "../../public/maps/anAngelFalls.json";
     import reachingHighJSON from "../../public/maps/reachingHigh.json";
     import coolBreezeJSON from "../../public/maps/coolBreeze.json";
-    import leavesJSON from "../../public/maps/leaves.json";*/
+    import leavesJSON from "../../public/maps/leaves.json";
+    import lightTheWorldPt2JSON from "../../public/maps/lightTheWorldPt2.json";
+    import wingsOfGoodbyeJSON from "../../public/maps/wingsOfGoodbye.json";
+    import aCentimetreApartJSON from "../../public/maps/aCentimetreApart.json";*/
     // public domain code ends here, everything below is licensed under AGPLv3
 
     import livinDreams from "@/songSamples/livinDreams.mp3";
@@ -37,6 +40,9 @@
     import reachingHigh from "@/songSamples/reachingHigh.mp3";
     import coolBreeze from "@/songSamples/coolBreeze.mp3";
     import leaves from "@/songSamples/leaves.mp3";
+    import lightTheWorldPt2 from "@/songSamples/lightTheWorldPt2.mp3";
+    import wingsOfGoodbye from "@/songSamples/wingsOfGoodbye.mp3";
+    import aCentimetreApart from "@/songSamples/aCentimetreApart.mp3";
 
     const props = defineProps([
         "cachedMaps",
@@ -67,7 +73,10 @@
             anAngelFalls: anAngelFallsJSON,
             reachingHigh: reachingHighJSON,
             coolBreeze: coolBreezeJSON,
-            leaves: leavesJSON
+            leaves: leavesJSON,
+            lightTheWorldPt2: lightTheWorldPt2JSON,
+            wingsOfGoodbye: wingsOfGoodbyeJSON,
+            aCentimetreApart: aCentimetreApartJSON
         }
     }
 
@@ -81,7 +90,10 @@
         anAngelFalls: anAngelFalls,
         reachingHigh: reachingHigh,
         coolBreeze: coolBreeze,
-        leaves: leaves
+        leaves: leaves,
+        lightTheWorldPt2: lightTheWorldPt2,
+        wingsOfGoodbye: wingsOfGoodbye,
+        aCentimetreApart: aCentimetreApart
     };
     const song = ref(new Audio());
 
@@ -224,7 +236,6 @@
         clearInterval(timeInterval);
     });
 
-
     function askForFile(type) {
         const fileInput = document.createElement("input");
         fileInput.type = "file";
@@ -330,7 +341,7 @@
     }
 
     function removeHighscores() {
-        for (let key of JSON.parse(localStorage.getItem("highscores"))) {
+        for (let key of JSON.parse(localStorage.getItem("highscores")).keys) {
             localStorage.removeItem(key);
         }
         localStorage.removeItem("highscores");
@@ -477,7 +488,7 @@
 
     <div 
         v-if="menu == 'main' && !(tabindex && thinScreen)"
-        class="fixed w-screen h-dvh flex justify-end items-center z-3"
+        class="fixed w-screen h-dvh flex items-center z-3"
     >
         <nav 
             class="flex flex-col items-end max-h-full w-full gap-4 overflow-x-hidden pb-12 sm:pb-16 pt-26 sm:pt-6"
@@ -523,10 +534,10 @@
 
     <div 
         v-else-if="!(tabindex && thinScreen)"
-        class="fixed w-screen h-dvh flex flex-col items-center z-3"
+        class="fixed w-screen h-dvh flex items-center z-3"
     >
         <nav 
-            class="flex flex-col items-end max-h-full gap-4 overflow-x-hidden pb-12 sm:pb-16 pt-26 sm:pt-6 w-full z-6"
+            class="flex flex-col items-end max-h-full w-full gap-4 overflow-x-hidden pb-12 sm:pb-16 pt-26 sm:pt-6 z-6"
             :tabindex="tabindex"
         >
             <PinkButton 

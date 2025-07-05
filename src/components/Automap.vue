@@ -302,7 +302,7 @@
 
     <label 
         v-if="backgroundImage == defaultBackgroundImage && hueRotate == theme.backgroundHueRotate"
-        class="cursor-pointer"
+        class="cursor-pointer text-center"
     >
         <input 
             class="mr-1 cursor-pointer disabled:cursor-not-allowed"

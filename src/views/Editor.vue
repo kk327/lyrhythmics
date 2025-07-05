@@ -569,11 +569,11 @@
                 } 
             }
 
-            if (stretchedFilters.value.id != backgroundFilters.value.length - 1 && backgroundFilters.value[stretchedFilters.value.id + 1].start - backgroundFilters.value[stretchedFilters.value.id + 1].transitionDuration - backgroundFilters.value[stretchedFilters.value.id].start < 0.01) {
+            if (stretchedFilters.value.id != backgroundFilters.value.length - 1 && Math.round((backgroundFilters.value[stretchedFilters.value.id + 1].start - backgroundFilters.value[stretchedFilters.value.id + 1].transitionDuration - backgroundFilters.value[stretchedFilters.value.id].start) * 1000) / 1000 < 0.01) {
                 backgroundFilters.value[stretchedFilters.value.id].transitionDuration -= backgroundFilters.value[stretchedFilters.value.id].start - (backgroundFilters.value[stretchedFilters.value.id + 1].start - backgroundFilters.value[stretchedFilters.value.id + 1].transitionDuration - 0.01);
                 backgroundFilters.value[stretchedFilters.value.id].start = backgroundFilters.value[stretchedFilters.value.id + 1].start - backgroundFilters.value[stretchedFilters.value.id + 1].transitionDuration - 0.01;
                 preventAutoscrolling = true;
-            } else if (stretchedFilters.value.id != 0 && backgroundFilters.value[stretchedFilters.value.id].start - backgroundFilters.value[stretchedFilters.value.id].transitionDuration - backgroundFilters.value[stretchedFilters.value.id - 1].start < 0.01) {
+            } else if (stretchedFilters.value.id != 0 && Math.round((backgroundFilters.value[stretchedFilters.value.id].start - backgroundFilters.value[stretchedFilters.value.id].transitionDuration - backgroundFilters.value[stretchedFilters.value.id - 1].start) * 1000) / 1000 < 0.01) {
                 backgroundFilters.value[stretchedFilters.value.id].transitionDuration = backgroundFilters.value[stretchedFilters.value.id].start - backgroundFilters.value[stretchedFilters.value.id - 1].start - 0.01;
                 preventAutoscrolling = true;
             }
@@ -582,6 +582,8 @@
                 backgroundFilters.value[stretchedFilters.value.id].transitionDuration -= backgroundFilters.value[stretchedFilters.value.id].start - songDuration.value;
                 backgroundFilters.value[stretchedFilters.value.id].start = songDuration.value;
                 preventAutoscrolling = true;
+            } else if (backgroundFilters.value[stretchedFilters.value.id].start - backgroundFilters.value[stretchedFilters.value.id].transitionDuration < 0) {
+                backgroundFilters.value[stretchedFilters.value.id].transitionDuration = backgroundFilters.value[stretchedFilters.value.id].start;
             }
         }
 

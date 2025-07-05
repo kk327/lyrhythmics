@@ -113,7 +113,7 @@
 
     const lyricsSettingList = ["capitalization", "accentLetters", "specialCharacters"];
     const saveHighscores = ref(localStorage.getItem("saveHighscores"));
-    const highscoreKey = props.data.id + "-" + speed.value + "-" + startTime.value + "-" + props.data.skipLyricless + "-" + lyricsSettingList.map((e) => props.data.lyricsSettings[e] ? '1' : '0').join("") + (props.data.wordLengthLimit ? "-wll" + props.data.wordLengthLimit : "");
+    const highscoreKey = props.data.id + "-" + speed.value + "-" + startTime.value + "-" + props.data.skipLyricless + "-" + lyricsSettingList.map((e) => props.data.lyricsSettings[e] ? '1' : '0').join("") + (props.data.wordLengthLimit ? "-wll" + props.data.wordLengthLimit : "") + (props.data.autospace ? "-as" : "");
     const highscore = ref(localStorage.getItem(highscoreKey) ? localStorage.getItem(highscoreKey) : -1);
     const continuedWithSettings = ref(false);
     const mobile = navigator.userAgent.match(/Android|iPhone|iPad/);
@@ -172,7 +172,7 @@
         setTimeout(() => {
             window.scrollTo({ top: Math.round(window.innerHeight * time.value / 3.5) })
         }, 0);
-    })
+    });
 
     onUnmounted(() => {
         removeEventListener("keydown", play);
@@ -183,7 +183,7 @@
         if (song) {
             song.pause();
         }
-    })
+    });
 
     watch(paused, () => {
         if (paused.value) { 
@@ -391,9 +391,9 @@
                             if (!continuedWithSettings.value && finalScore.value > highscore.value && saveHighscores.value) {
                                 localStorage.setItem(highscoreKey, finalScore.value);
                                 if (localStorage.getItem("highscores")) {
-                                    localStorage.setItem("highscores", JSON.stringify([ ...JSON.parse(localStorage.getItem("highscores")), highscoreKey ]));
+                                    localStorage.setItem("highscores", JSON.stringify({ keys: [ ...JSON.parse(localStorage.getItem("highscores")).keys, highscoreKey ], compatibilityVersion: 2 }));
                                 } else {
-                                    localStorage.setItem("highscores", JSON.stringify([ highscoreKey ]));
+                                    localStorage.setItem("highscores", JSON.stringify({ keys: [ highscoreKey ], compatibilityVersion: 2 }));
                                 }
                             }
                         }
@@ -435,21 +435,22 @@
         if (inputs.length && !Object.keys(inputs).map((key) => inputs[key]).some((e) => e == document.activeElement)) {
             inputs[checkedWord.value].focus();
             dontGoToNext = true;
-
-            setTimeout(() => {
-                if (inputLyrics.value[checkedWord.value] == " ") {
-                    inputLyrics.value[checkedWord.value] = "";
-                }
-            }, 0);
         }
 
         addEventListener("keydown", playingKeydown);
         addEventListener("keyup", playingKeyup);
     }
 
+    function disableDontGoToNext() {
+        dontGoToNext = false;
+        if (inputLyrics.value[checkedWord.value] == " ") {
+            inputLyrics.value[checkedWord.value] = "";
+        }
+    }
+
     function enableHighscores() {
         localStorage.setItem(highscoreKey, finalScore.value);
-        localStorage.setItem("highscores", JSON.stringify([ highscoreKey ]));
+        localStorage.setItem("highscores", JSON.stringify({ keys: [ highscoreKey ], compatibilityVersion: 2 }));
         localStorage.setItem("saveHighscores", true);
         saveHighscores.value = true;
     }
@@ -557,7 +558,7 @@
             unfilteredLyrics = lyrics.value;
             lyrics.value = lyrics.value.filter((e) => e.length);
 
-            if (data.autospace) {
+            if (data.autospace && visibleLyrics.value.length) {
                 inputs[typingNextVerse.value ? 0 : checkedWord.value].focus();
             }
 
@@ -633,7 +634,11 @@
                               '--placeholderColor': theme.inputText.placeholderColor }"
                     :placeholder="lyric.word"
                     :tabindex="paused || finished ? -1 : 0"
-                    @input="inputLyrics[idx].includes(' ') && !dontGoToNext ? goToNextWord(idx) : dontGoToNext = false"
+                    @input="dontGoToNext ? 
+                                disableDontGoToNext()
+                                : inputLyrics[idx].includes(' ') ? 
+                                    goToNextWord(idx) 
+                                    : {}"
                 >
                 
                 <p 

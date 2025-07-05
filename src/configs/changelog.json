@@ -1,7 +1,20 @@
 { 
     "releases": [{
+        "version": "1.5.1",
+        "date": "July 5th, 2025",
+        "changes": [
+            "Added three officially mapped songs: \"DJStriden - Light The World Pt II\", \"MTSsmitty - Wings of Goodbye\" and \"Cloudier - A Centimetre Apart\".",
+            "Highscores are now seperated by autospace like by every other setting from the map customization menu. Highscores from before this update are unaffected.",
+            "The song list is no longer at the top of the screen when it doesn't take the entire height of it.",
+            "The text next to the checkbox to include hue-rotate in the map on the automap page is now centered when it's split into multiple lines.",
+            "Fixed inputting a space into a word input if you pressed space the moment you loaded a map.",
+            "Fixed not being able to continue with restart settings if you enabled autospace while no lyrics were visible.",
+            "Fixed being able to stretch a background filter in the map editor into a slightly negative time, as well as onto the previous background filter if the stretched one ended when the next one started."
+        ]
+    },
+    {
         "version": "1.5.0",
-        "date": "June 21th, 2025",
+        "date": "June 21st, 2025",
         "changes": [
             "Added theming. You can access it in the settings.",
             "The score visible in the corner of the screen when playing is now always rounded to the lower number.",
