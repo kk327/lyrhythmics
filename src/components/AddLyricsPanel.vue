@@ -1,5 +1,6 @@
 <script setup>
     import { ref, onUnmounted, useTemplateRef, onMounted, watch } from 'vue';
+    import MenuPanel from './MenuPanel.vue';
 
     const props = defineProps([
         "close",
@@ -101,110 +102,107 @@
 </script>
 
 <template>
-    <div class="fixed w-screen h-dvh bg-black/[var(--bg-60)] z-11 backdrop-blur-xs"></div>
-    <div class="fixed w-screen h-dvh z-12 flex justify-center items-center flex-col gap-3">
-        <div class="flex flex-col h-full justify-center gap-3">
-            <textarea 
-                class="bg-white p-2 rounded-xl min-w-[66.7vw] w-full h-2/3 text-center resize-none"
-                ref="textarea"
-                v-model="inputLyrics"
-                @change="lyricsType == 'text' ? {} : parseLyrics()"
-            ></textarea>
+    <MenuPanel :noPadding="true">
+        <textarea 
+            class="bg-white p-2 rounded-xl min-w-[66.7vw] w-full h-[66.7vh] text-center resize-none text-black"
+            ref="textarea"
+            v-model="inputLyrics"
+            @change="lyricsType == 'text' ? {} : parseLyrics()"
+        ></textarea>
 
-            <div class="flex justify-between min-w-2/3 max-w-[calc(100vw-50px)] gap-3">
-                <div class="gap-3 flex">
-                    <button
-                        class="button"
-                        :disabled="!inputLyrics.split('\n').some(e => e.split(' ').filter(e => e).length) || (!parsedLyrics.length && lyricsType != 'text')"
-                        :title="!inputLyrics.split('\n').some(e => e.split(' ').filter(e => e).length) ?
-                                    'Input the lyrics first.'
-                                    : !parsedLyrics.length && lyricsType != 'text' ?
-                                        'The lyrics cannot be parsed due to an error. Make sure everything is correct, or if you didn\'t intend to parse them as a .srt, .vtt or .lrc file, change the type to text.' 
-                                        : ''"
-                        @click="$emit('addLyrics', inputLyrics, parsedLyrics, lengthBased)"
-                    >Add</button>
-                    
-                    <button
-                        class="button"
-                        @click="$emit('close')"
-                    >Cancel</button>
-                </div>
-                
-                <div class="flex gap-3 text-white items-center ml-5">
-                    <label
-                        class="has-disabled:cursor-not-allowed has-disabled:text-neutral-400"
-                        :title="currentLyrics ? 'There already are lyrics added.' : ''"
+        <div class="flex justify-between min-w-[66.7vw] max-w-[calc(100vw-50px)] gap-3 p-3 pt-4">
+            <div class="gap-3 flex">
+                <button
+                    class="button"
+                    :disabled="!inputLyrics.split('\n').some(e => e.split(' ').filter(e => e).length) || (!parsedLyrics.length && lyricsType != 'text')"
+                    :title="!inputLyrics.split('\n').some(e => e.split(' ').filter(e => e).length) ?
+                                'Input the lyrics first.'
+                                : !parsedLyrics.length && lyricsType != 'text' ?
+                                    'The lyrics cannot be parsed due to an error. Make sure everything is correct, or if you didn\'t intend to parse them as a .srt, .vtt or .lrc file, change the type to text.' 
+                                    : ''"
+                    @click="$emit('addLyrics', inputLyrics, parsedLyrics, lengthBased)"
+                >Add</button>
+            
+                <button
+                    class="button"
+                    @click="$emit('close')"
+                >Cancel</button>
+            </div>
+        
+            <div class="flex gap-3 text-white items-center ml-5">
+                <label
+                    class="has-disabled:cursor-not-allowed has-disabled:text-neutral-400"
+                    :title="currentLyrics ? 'There already are lyrics added.' : ''"
+                >
+                    From file:
+                    <input 
+                        class="button py-1 font-normal w-40 mr-5"
+                        type="file"
+                        accept=".lrc, .srt, .vtt"
+                        :disabled="currentLyrics"
+                        @change="(e) => loadFromFile(e.target.files[0])"
                     >
-                        From file:
-                        <input 
-                            class="button py-1 font-normal w-40 mr-5"
-                            type="file"
-                            accept=".lrc, .srt, .vtt"
-                            :disabled="currentLyrics"
-                            @change="(e) => loadFromFile(e.target.files[0])"
-                        >
-                    </label>
-                
-                    <p>Type:</p>
-                
-                    <label class="cursor-pointer">
-                        <input 
-                            class="cursor-pointer"
-                            type="radio" 
-                            value="text"
-                            v-model="lyricsType"
-                        >
-                        Text
-                    </label>
-                
-                    <label 
-                        class="cursor-pointer has-disabled:cursor-not-allowed has-disabled:text-neutral-400"
-                        :title="currentLyrics ? 'There already are lyrics added.' : ''"
+                </label>
+            
+                <p>Type:</p>
+            
+                <label class="cursor-pointer">
+                    <input 
+                        class="cursor-pointer"
+                        type="radio" 
+                        value="text"
+                        v-model="lyricsType"
                     >
-                        <input 
-                            class="cursor-pointer disabled:cursor-not-allowed"
-                            type="radio" 
-                            value="srt/vtt"
-                            v-model="lyricsType"
-                            :disabled="currentLyrics"
-                        >
-                        .srt/.vtt
-                    </label>
-                
-                    <label 
-                        class="cursor-pointer mr-5 has-disabled:cursor-not-allowed has-disabled:text-neutral-400"
-                        :title="currentLyrics ? 'There already are lyrics added.' : ''"
+                    Text
+                </label>
+            
+                <label 
+                    class="cursor-pointer has-disabled:cursor-not-allowed has-disabled:text-neutral-400"
+                    :title="currentLyrics ? 'There already are lyrics added.' : ''"
+                >
+                    <input 
+                        class="cursor-pointer disabled:cursor-not-allowed"
+                        type="radio" 
+                        value="srt/vtt"
+                        v-model="lyricsType"
+                        :disabled="currentLyrics"
                     >
-                        <input 
-                            class="cursor-pointer disabled:cursor-not-allowed"
-                            type="radio" 
-                            value="lrc"
-                            v-model="lyricsType"
-                            :disabled="currentLyrics"
-                        >
-                        .lrc
-                    </label>
-                
-                    <label 
-                        :class="songDuration && !currentLyrics ? 
-                                    'font-bold flex gap-1.5 cursor-pointer select-none' :
-                                    'text-gray-500 font-bold flex gap-1.5 cursor-not-allowed select-none'"
-                        :title="!songDuration ? 
-                                    'No song uploaded.'
-                                    : currentLyrics ? 
-                                        'There already are lyrics added.'
-                                        : ''"
+                    .srt/.vtt
+                </label>
+            
+                <label 
+                    class="cursor-pointer mr-5 has-disabled:cursor-not-allowed has-disabled:text-neutral-400"
+                    :title="currentLyrics ? 'There already are lyrics added.' : ''"
+                >
+                    <input 
+                        class="cursor-pointer disabled:cursor-not-allowed"
+                        type="radio" 
+                        value="lrc"
+                        v-model="lyricsType"
+                        :disabled="currentLyrics"
                     >
-                        <input 
-                            class="cursor-pointer disabled:cursor-not-allowed"
-                            type="checkbox"
-                            v-model="lengthBased"
-                            :disabled="!songDuration || currentLyrics"
-                        >
-                        Delays based on song length
-                    </label>
-                </div>
+                    .lrc
+                </label>
+            
+                <label 
+                    :class="songDuration && !currentLyrics ? 
+                                'font-bold flex gap-1.5 cursor-pointer select-none' :
+                                'text-gray-500 font-bold flex gap-1.5 cursor-not-allowed select-none'"
+                    :title="!songDuration ? 
+                                'No song uploaded.'
+                                : currentLyrics ? 
+                                    'There already are lyrics added.'
+                                    : ''"
+                >
+                    <input 
+                        class="cursor-pointer disabled:cursor-not-allowed"
+                        type="checkbox"
+                        v-model="lengthBased"
+                        :disabled="!songDuration || currentLyrics"
+                    >
+                    Delays based on song length
+                </label>
             </div>
         </div>
-    </div>
+    </MenuPanel>
 </template>

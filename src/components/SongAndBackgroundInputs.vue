@@ -1,10 +1,10 @@
 <script setup>
     import { ref, watch, watchEffect, onMounted, onUnmounted } from 'vue';
-    import defaultBackground from '@/assets/background.png'
     import config from "@/configs/config.json";
 
     const props = defineProps([
         "tabindex",
+        "defaultBackground", // background.png
         "defaultBackgroundImage",
         "defaultSong",
         "minDuration",
@@ -23,7 +23,7 @@
     const targetFPS = localStorage.getItem("targetFPS") ? localStorage.getItem("targetFPS") : 60;
 
     const theme = localStorage.getItem("theme") ? JSON.parse(localStorage.getItem("theme")) : config.defaultTheme;
-    const defaultBackgroundImage = theme.backgroundImage == "default" ? defaultBackground : theme.backgroundImage;
+    const defaultBackgroundImage = theme.backgroundImage == "default" ? props.defaultBackground : theme.backgroundImage;
     const backgroundImage = ref(props.defaultBackgroundImage);
 
     const songPosition = ref(0);
@@ -39,6 +39,10 @@
             if (!audio.value.paused) {
                 audio.value.pause();
             }
+            
+            if (audio.value.duration) {
+                audio.value.currentTime = audio.value.duration;
+            }
 
             audio.value = new Audio(song.value);
             await audio.value.play();
@@ -50,6 +54,17 @@
 
             audio.value.addEventListener("play", () => {
                 playingSong.value = true;
+                audio.value.currentTime = songPosition.value;
+                    
+                positionUpdateInterval = setInterval(() => {
+                    if (audio.value.currentTime >= songDuration.value) {
+                        clearInterval(positionUpdateInterval);
+                        songPosition.value = 0;
+                        playingSong.value = false;
+                    } else {
+                        songPosition.value = audio.value.currentTime;
+                    }
+                }, 1000 / targetFPS);
             });
 
             let attemptInterval = setInterval(() => {
@@ -61,6 +76,7 @@
                         songStatus.value = "";
                         songDuration.value = Math.floor(audio.value.duration * 100) / 100;
                         emit("songLoaded", song.value, audio.value, songDuration.value, songName.value);
+                        songPosition.value = 0;
                     }
                     clearInterval(attemptInterval);  
                 }
@@ -89,6 +105,9 @@
 
     onUnmounted(() => {
         stopSong();
+        if (audio.value.duration) {
+            audio.value.currentTime = audio.value.duration;
+        }
     });
 
     function loadFromFile(file, toBackground) {
@@ -112,19 +131,7 @@
         if (songPosition.value != -1) {
             stopSong();
         }
-
-        audio.value.currentTime = songPosition.value;
         audio.value.play();
-        
-        positionUpdateInterval = setInterval(() => {
-            if (audio.value.currentTime >= songDuration.value) {
-                clearInterval(positionUpdateInterval);
-                songPosition.value = 0;
-                playingSong.value = false;
-            } else {
-                songPosition.value = audio.value.currentTime;
-            }
-        }, 1000 / targetFPS);
     }
 
     function stopSong() {
@@ -135,7 +142,7 @@
 
 <template>
     <div v-if="!backgroundImageTheme">
-        <h2 class="font-bold text-xl mt-4 mb-2 text-center">Song:</h2>
+        <h2 class="font-bold text-xl mt-4 mb-2">Song:</h2>
         <label class="flex flex-row items-center gap-2 flex-wrap justify-center mb-1.5">
             From file:
             <input 

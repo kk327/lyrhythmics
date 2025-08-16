@@ -1,5 +1,41 @@
 { 
     "releases": [{
+        "version": "1.6.0",
+        "date": "August 16th, 2025",
+        "changes": [
+            "Added free verse changing, a setting which lets you type any verse anytime except of during marked lyricless parts.",
+            "Menus now have a background that covers just them and is more blurred and darker. The whole-screen darkening is now more transparent.",
+            "Added a close button to the corner of the changelog, about, automap and settings menus.",
+            "The map customization menu is now more compact.",
+            "The placeholders of inputs that are at the top of the screen when playing now are the color of typed text at 50% opacity making them more readable.",
+            "Checking for a word being typed late now happens while you type instead of just when the next word passes.",
+            "Added a loading screen which is shown before the game finishes loading as well as a failed to load game screen.",
+            "Added percentages to the total column of the statistics table on the menu shown when you finish a map.",
+            "Improved background change lag prevention, it now only activates itself if the lag is when a background change starts for the first time in the map.",
+            "If you change the lyrics customization while typing the next verse early, the change no longer applies to the typed verse.",
+            "If you change the lyrics customization while inside a lyricless part, it now applies to the verse after it unless you started typing that verse early.",
+            "The buttons in the top right corner of the editor no longer cover the Map settings text on smaller resolutions.",
+            "The optional fullscreen button icon is now a bit thinner.",
+            "Now there's a bit more space between the cancel button and the loading map text as well as between the paused text and the map name.",
+            "Replaced the text that said \"An error occured while loading the\" with \"Failed to load the\".",
+            "The warning text and the new text that says \"Failed to load the\" are now proper headers instead of just being bold text.", 
+            "Changed punctuation and formatting of the text that says \"otherwise the theme default will be used\" on the automap page to now be in brackets.",
+            "Replaced \"except of\" with \"except for\" on the about and automap pages.",
+            "When you replace the song in automap or in the editor the time on the player is reset to 0 seconds.",
+            "The mobile warning for the editor is now also shown when you attempt to edit a map.",
+            "Improved the tab hitbox of the buttons at the right side of the main menu.",
+            "Fixed a bug that caused the song to desync sometimes after continuing with restart settings.",
+            "Fixed themes not being saved after being changed after being reset to default.",
+            "Fixed audio bugs caused by using 3rd party pause and unpause for audio mostly when you were not expected to do it.",
+            "Fixed the continue with restart settings checkmark sometimes still being there after changing lyrics customization to what it was before pausing.",
+            "Fixed the default background image instead of information about it being the default one being stored in the theme if you reset it to default.",
+            "Fixed pressing enter closing both the failed to load the theme error and the settings menu at once.",
+            "Fixed the texts that say \"Loading song...\" and \"Failed to load song.\" not being centered on the automap page.",
+            "Optimised the performance of menu background lyrics.",
+            "Updated the license of the song DJStriden - Light The World Pt II as it was changed to Creative Commons."
+        ]
+    },
+    {
         "version": "1.5.1",
         "date": "July 5th, 2025",
         "changes": [

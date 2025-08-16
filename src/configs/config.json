@@ -18,7 +18,6 @@
         },
         "inputText": {
             "color": "#ffffff",
-            "placeholderColor": "#a1a1a1",
             "outlineColor": "#000000",
             "forceOutline": false
         },

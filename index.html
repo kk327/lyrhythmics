@@ -1,19 +1,65 @@
 <!DOCTYPE html>
 <html lang="">
-  <head>
-    <meta charset="UTF-8">
-    <link rel="icon" href="/favicon.ico">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lyrhythmics</title>
-    <meta name="description" content="Lyrhythmics is a lyrics typing game. It's also FOSS.">
-    <base target="_blank">
-    <style id="customCSS"></style>
-  </head>
-  <body>
-    <div id="app"></div>
-    <script 
-      type="module" 
-      src="/src/main.js"
-    ></script>
-  </body>
+    <head>
+        <meta charset="UTF-8">
+        <link rel="icon" href="/favicon.ico">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Lyrhythmics</title>
+        <meta name="description" content="Lyrhythmics is a lyrics typing game. It's also FOSS.">
+        <base target="_blank">
+        <style id="customCSS"></style>
+    </head>
+    <body>
+        <noscript>
+            <style>
+                @import "tailwindcss";
+
+                @layer base {
+                    .button {
+                        @apply cursor-pointer bg-black/40 border-white/0 border-2 px-4 py-2 rounded-xl backdrop-blur-md text-white font-bold hover:brightness-125 hover:border-white duration-200;
+                    }
+                    
+                    * {
+                        @apply accent-pink-500;
+                    }
+                }
+            </style>
+
+            <main class="flex w-screen h-dvh flex-col items-center justify-center">
+                <img 
+                    class="fixed h-[calc(100vh+50px)] top-[-25px] w-screen object-cover select-none"
+                    src="background.jpg"
+                    alt="Background"
+                >
+
+                <div class="fixed w-screen h-dvh bg-black/50 backdrop-blur-xs z-10"></div>
+                <div class="fixed w-screen h-dvh flex justify-center items-center text-white text-center z-11">
+                    <div class="flex bg-neutral-900/40 sm:rounded-xl h-dvh w-full sm:h-auto sm:w-auto sm:max-h-[calc(100dvh-20px)] sm:max-w-[calc(100%-20px)]">
+                        <div class="flex items-center sm:rounded-xl backdrop-blur-2xl w-full h-full sm:h-auto sm:w-auto">
+                            <div class="flex flex-col items-center max-h-full w-full px-2 sm:px-6 py-2 sm:py-3 overflow-y-auto">
+                                <div class="bg-pink-500 font-bold text-3xl text-white [text-shadow:0.125em_0.075em_var(--color-violet-900)] skew-x-[-20deg] border-white border-3 mb-3 mx-4 text-center">
+                                    <div class="border-violet-900 border-3 py-2 px-4">
+                                        <p class="skew-x-5">Failed to load the game</p>
+                                    </div>
+                                </div>
+
+                                <p>Javascript is required.</p>
+                                <a 
+                                    class="button mt-2.5"
+                                    href="/"
+                                    target="_self"
+                                >Try again</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </noscript>
+
+        <div id="app"></div>
+        <script 
+            type="module" 
+            src="/src/main.js"
+        ></script>
+    </body>
 </html>

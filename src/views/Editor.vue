@@ -1,7 +1,6 @@
 <script setup>
     import { ref, watch, computed, onMounted, onUnmounted} from 'vue';
     import { useRouter } from 'vue-router';
-    import defaultBackground from '@/assets/background.png';
     import config from "@/configs/config.json";
     import Play from './Play.vue';
     import AddLyricsPanel from '@/components/AddLyricsPanel.vue';
@@ -9,9 +8,11 @@
     import SpeedSelector from '@/components/SpeedSelector.vue';
     import LyricsCustomization from '@/components/LyricsCustomization.vue';
     import SongAndBackgroundInputs from '@/components/SongAndBackgroundInputs.vue';
+    import MenuPanel from '@/components/MenuPanel.vue';
 
     const props = defineProps([
-        "data"
+        "data",
+        "defaultBackground"
     ]);
 
     const emit = defineEmits([
@@ -51,6 +52,7 @@
     const skipLyricless = ref(props.data && props.data.skipLyricless && props.data.partsWithoutLyrics.length ? true : false);
     const wordLengthLimit = ref(props.data ? props.data.wordLengthLimit : 0);
     const autospace = ref((localStorage.getItem("autospaceByDefault") && !props.data) || (props.data && props.data.autospace));
+    const freeVerseChanging = ref((localStorage.getItem("freeVerseChangingByDefault") && !props.data) || (props.data && props.data.freeVerseChanging));
 
     const lyricsSettingList = ["capitalization", "accentLetters", "specialCharacters"];
     const lyricsSettings = ref(props.data ? props.data.lyricsSettings : {});
@@ -91,7 +93,7 @@
     const songDuration = ref(0);
 
     const theme = localStorage.getItem("theme") ? JSON.parse(localStorage.getItem("theme")) : config.defaultTheme;
-    const defaultBackgroundImage = theme.backgroundImage == "default" ? defaultBackground : theme.backgroundImage;
+    const defaultBackgroundImage = theme.backgroundImage == "default" ? props.defaultBackground : theme.backgroundImage;
     const backgroundImage = ref(props.data ? props.data.backgroundImage : defaultBackgroundImage);
     
     const backgroundFilters = ref(props.data ? props.data.backgroundFilters : []);
@@ -173,6 +175,9 @@
     watch(settingsVisible, () => {
         if (settingsVisible.value) {
             audio.value.pause();
+            if (audio.value.duration) {
+                audio.value.currentTime = audio.value.duration;
+            }
             
             savedScrollY = window.scrollY;
             window.scrollTo({ top: 0 });
@@ -626,6 +631,7 @@
                 lyricsSettings: lyricsSettings.value,
                 wordLengthLimit: wordLengthLimit.value,
                 autospace: autospace.value,
+                freeVerseChanging: freeVerseChanging.value,
                 playtesting: true
             };
             audio.value.pause();
@@ -652,7 +658,7 @@
         
         if (download) {
             lastSave = JSON.stringify({ ...data, id: "" });
-            const blob = new Blob([JSON.stringify(data)], {type: "application/json"});
+            const blob = new Blob([JSON.stringify(data)], { type: "application/json" });
             const a = document.createElement("a");
             a.href = URL.createObjectURL(blob);
             a.download = (name.value ? name.value : "Unnamed Lyrhythmics map") + ".json";
@@ -745,16 +751,11 @@
         @addLyrics="(inputLyrics, parsedLyrics, lengthBased) => addLyrics(inputLyrics, parsedLyrics, lengthBased)"
     />
 
-    <!-- quit to menu warning -->
-    <div
-        v-if="quitWarningVisible || removedVerse != -1 || editedVerse != -1"
-        class="fixed left-0 w-screen h-dvh flex justify-center items-center text-white z-10"
-    >
-        <div class="fixed w-screen h-dvh bg-black/[var(--bg-60)] backdrop-blur-xs"></div> 
-
+    <!-- quit to menu warning, verse remove warning, edit verse menu -->
+    <MenuPanel v-if="quitWarningVisible || removedVerse != -1 || editedVerse != -1">
         <div 
             v-if="quitWarningVisible"
-            class="flex flex-col items-center max-h-full w-full p-2 overflow-y-auto z-11 text-center"
+            class="flex flex-col items-center"
         >
             <h2 class="font-bold text-lg">Are you sure you want to quit?</h2>
             <p>Make sure to export the map first if you want to have it saved.</p>
@@ -774,7 +775,7 @@
 
         <div
             v-else-if="removedVerse != -1"
-            class="flex flex-col items-center max-h-full w-full py-2 overflow-y-auto z-11"
+            class="flex flex-col items-center"
         >
             <p class="font-bold text-lg">Are you sure you want to remove this verse?</p>
             <p>{{ lyrics[removedVerse].map((e) => e.word).join(" ") }}</p>
@@ -794,14 +795,14 @@
 
         <div
             v-else
-            class="flex flex-col items-center max-h-full w-full py-2 overflow-y-auto z-11"
+            class="flex flex-col items-center"
         >
             <p class="font-bold text-lg mb-2">Input the edited verse.</p>
             <div class="flex gap-2 flex-wrap justify-center">
                 <button
                     class="button"
                     title="Add new word."
-                        @click="editedVerseData.splice(0, 0, { word: '', delay: editedVerseData[0].delay })"
+                    @click="editedVerseData.splice(0, 0, { word: '', delay: editedVerseData[0].delay })"
                 >+</button>
 
                 <div 
@@ -836,7 +837,7 @@
                 >Confirm</button>
             </div>
         </div>
-    </div>
+    </MenuPanel>
 
     <!-- background image -->
     <img
@@ -847,10 +848,6 @@
         alt="Background"
         draggable="false"
     >
-    <div 
-        v-if="settingsVisible && !playtesting"
-        class="fixed w-screen h-dvh bg-black/[var(--bg-60)] z-[-9] backdrop-blur-xs"
-    ></div>
 
     <!-- top left buttons -->
     <div 
@@ -949,229 +946,245 @@
     <!-- settings -->
     <main 
         v-if="settingsVisible && !playtesting"
-        class="flex flex-col items-center w-full min-h-dvh text-white pb-4 px-2 text-center"
+        class="w-screen h-dvh flex justify-center text-white text-center"
     >
-        <div class="flex flex-row items-center mt-8 gap-3 max-w-full">
-            <hr class="w-25 border-t-3">
-            <h1 class="font-bold text-2xl">Map settings</h1>
-            <hr class="w-25 border-t-3">
+        <div class="flex bg-black/50 h-dvh w-full sm:w-auto sm:max-w-[calc(100%-20px)] backdrop-blur-2xl sm:backdrop-blur-none">
+            <div class="bg-neutral-900/[var(--bg-40)]">
+                <div class="flex flex-col items-center h-full w-full px-2 sm:px-6 pb-2 sm:pb-3 pt-16 2xl:pt-3 sm:backdrop-blur-2xl overflow-y-auto">
+                    <div class="flex flex-row items-center mt-2 gap-3 max-w-full">
+                        <hr class="w-25 border-t-3">
+                        <h1 class="font-bold text-2xl">Map settings</h1>
+                        <hr class="w-25 border-t-3">
+                    </div>
+
+                    <SongAndBackgroundInputs
+                        :tabindex="tabindex"
+                        :defaultBackground="defaultBackground"
+                        :defaultBackgroundImage="backgroundImage"
+                        :defaultSong="song"
+                        :minDuration="Math.max(partsWithoutLyrics.length ? partsWithoutLyrics[partsWithoutLyrics.length - 1].end : 0, backgroundFilters.length ? backgroundFilters[backgroundFilters.length - 1].start : 0)"
+                        @backgroundImageSet="(newBackgroundImage) => backgroundImage = newBackgroundImage"
+                        @songLoaded="(newSong, newAudio, newSongDuration) => onSongLoad(newSong, newAudio, newSongDuration)"
+                    />
+                
+                    <h2 class="font-bold text-xl mt-4 mb-2">Background filters:</h2>
+
+                    <p>
+                        Hue-rotate for testing: 
+                        <b>{{ testHueRotate }}°</b>
+                    </p>
+                    <div class="flex gap-2 mb-1.5 mt-1">
+                        <input 
+                            v-model="testHueRotate"
+                            min="0"
+                            max="360"
+                            type="range"
+                            :tabindex="tabindex"
+                        >
+                        <input 
+                            class="input w-35"
+                            v-model="testHueRotate"
+                            type="number"
+                            :tabindex="tabindex"
+                            @change="(e) => isNaN(parseFloat(e.target.value)) ? testHueRotate = 0 : {}"
+                        >
+                    </div>
+                
+                    <p>
+                        Brightness for testing: 
+                        <b>{{ testBrightness }}%</b>
+                    </p>
+                    <div class="flex gap-2 mb-1.5 mt-1">
+                        <input 
+                            v-model="testBrightness"
+                            min="0"
+                            max="500"
+                            type="range"
+                            :tabindex="tabindex"
+                        >
+                        <input 
+                            class="input w-35"
+                            v-model="testBrightness"
+                            type="number"
+                            :tabindex="tabindex"
+                            @change="(e) => isNaN(parseFloat(e.target.value)) ? testBrightness = 0 : {}"
+                        >
+                    </div>
+                
+                    <p v-for="filterData, idx in backgroundFilters">
+                        {{ Math.round(filterData.start * 100) / 100 + "s | " + filterData.hue + "° | " + filterData.brightness + "% | " + Math.round(filterData.transitionDuration * 100) / 100 + (filterData.transitionDuration ? "s (" + Math.round((filterData.start - filterData.transitionDuration) * 100) / 100 + "s - " + Math.round(filterData.start * 100) / 100 + "s)" : "s (instant)") }}
+                        <button
+                            class="button p-0 w-8 my-0.75"
+                            title="Remove."
+                            :tabindex="tabindex"
+                            @click="backgroundFilters = backgroundFilters.filter((e, idx2) => idx != idx2)"
+                        >X</button>
+                    </p>
+                    <InputsAdd 
+                        :labels="['Start time', 'Hue-rotate', 'Brightness', 'Transition duration']"
+                        :maxValues="[songDuration, Infinity, Infinity, Infinity]"
+                        limits="transition"
+                        :array="backgroundFilters"
+                        :disabledInfo="!songDuration ? 'Add a song first.' : ''"
+                        :tabindex=tabindex
+                        @add="(start, hue, brightness, transitionDuration) => backgroundFilters = [ ...backgroundFilters, { start: start, hue: hue, brightness: brightness, transitionDuration: transitionDuration }].sort((a,b) => a.start - b.start)"
+                    />
+                
+                    <p class="mt-2">The transition takes place before the start time.</p>
+                
+                    <h2 class="font-bold text-xl mt-4 mb-2">Metadata:</h2>
+                    <label>
+                        Name:
+                        <input 
+                            class="input ml-1 mb-1.5"
+                            type="text"
+                            :tabindex="tabindex"
+                            v-model="name"
+                        >
+                    </label>
+                    <label>
+                        Mapper:
+                        <input 
+                            class="input ml-1 mb-1.5"
+                            type="text"
+                            :tabindex="tabindex"
+                            v-model="mapper"
+                        >
+                    </label>
+                    <label class="flex items-center flex-col">
+                        Additional information (can include links):
+                        <textarea 
+                            class="bg-white p-2 rounded-xl w-133 max-w-[calc(100vw-16px)] h-50 text-center text-black my-1"
+                            type="text"
+                            :tabindex="tabindex"
+                            v-model="additionalInfo"
+                        ></textarea>
+                    </label>
+                    <p>Example link: {{ "<https://example.com example link>" }}</p>
+                
+                    <h2 
+                        :class="!songDuration ? 'font-bold text-xl mt-4 mb-2 text-neutral-400 cursor-not-allowed' : 'font-bold text-xl mt-4 mb-2'"
+                        :title="!songDuration ? 'Add a song first.' : ''"
+                    >
+                        Parts without lyrics:
+                    </h2>
+                    <p v-for="part, idx in partsWithoutLyrics">
+                        {{ Math.round(part.start * 100) / 100 + "s - " + Math.round(part.end * 100) / 100 + "s" }}
+                        <button
+                            class="button p-0 w-8 my-0.75"
+                            title="Remove."
+                            :tabindex="tabindex"
+                            @click="partsWithoutLyrics = partsWithoutLyrics.filter((e, idx2) => idx != idx2)"
+                        >X</button>
+                    </p>
+                    <InputsAdd 
+                        :labels="['Start time', 'End time']"
+                        :maxValues="[songDuration, songDuration]"
+                        limits="startEnd"
+                        :array="partsWithoutLyrics"
+                        :disabledInfo="!songDuration ? 'Add a song first.' : ''"
+                        :tabindex="tabindex"
+                        @add="(start, end) => partsWithoutLyrics = [ ...partsWithoutLyrics, { start: start, end: end }].sort((a,b) => a.start - b.start)"
+                    />
+                
+                    <label 
+                        class="flex flex-col items-center has-disabled:text-neutral-400 has-disabled:cursor-not-allowed"
+                        :title="!partsWithoutLyrics.length ? 'Add a part without lyrics first.' : ''"
+                    >
+                        <h2 class="font-bold text-xl mt-4 mb-2">Force-skip parts without lyrics:</h2>
+                        <input 
+                            class="cursor-pointer disabled:cursor-not-allowed"
+                            :disabled="!partsWithoutLyrics.length"
+                            :tabindex="tabindex"
+                            type="checkbox"
+                            v-model="forceskip"
+                        >
+                    </label>
+                
+                    <div class="flex flex-row items-center mt-8 gap-3 max-w-full">
+                        <hr class="w-25 border-t-3">
+                        <h1 class="font-bold text-2xl">Editor/playtesting settings</h1>
+                        <hr class="w-25 border-t-3">
+                    </div>
+                
+                    <SpeedSelector
+                        :defaultSpeed="speed"
+                        :tabindex="tabindex"
+                        @changed="(newSpeed) => speed = newSpeed"
+                    />
+                
+                    <label 
+                        class="flex flex-col items-center has-disabled:text-neutral-400 has-disabled:cursor-not-allowed"
+                        :title="forceskip ?
+                                    'Force-skip is enabled instead.' 
+                                    : !partsWithoutLyrics.length ?
+                                        'Add a part without lyrics first.'
+                                        : ''"
+                    >
+                        <h2 class="font-bold text-xl mt-4 mb-2">Skip parts without lyrics:</h2>
+                        <input 
+                            class="cursor-pointer disabled:cursor-not-allowed"
+                            :disabled="forceskip || !partsWithoutLyrics.length"
+                            :tabindex="tabindex"
+                            type="checkbox"
+                            v-model="skipLyricless"
+                        >
+                    </label>
+                
+                    <LyricsCustomization 
+                        variant="editor"
+                        :default="lyricsSettings"
+                        :lyrics="lyrics"
+                        :tabindex="tabindex"
+                        @settingChanged="(name, value) => lyricsSettings[name] = value"
+                    />
+                    <p v-if="lyrics.length && !lyrics.map((e) => e.map((e2) => { return lyricsSettings.accentLetters ? e2 : { word: e2.word.normalize('NFKD').replace(/\p{Diacritic}/gu, ''), delay: e2.delay } }).map((e2) => { return lyricsSettings.specialCharacters ? e2 : { word: e2.word.replace(/\P{Letter}/gu, ''), delay: e2.delay } }).filter((e2) => e2.word)).filter((e) => e.length).length">
+                        These settings remove all the lyrics, so playtesting will immediately end.
+                    </p>
+                
+                    <label 
+                        class="has-disabled:text-neutral-400 has-disabled:cursor-not-allowed"
+                        :title="lyrics.length ? '' : 'Add lyrics first.'"
+                    >
+                        <h2 class="font-bold text-xl mt-4">Word length limit:</h2>
+                        <p class="mb-2">(0 means no limit)</p>
+                        <input 
+                            class="input w-27.5"
+                            type="number"
+                            min="0"
+                            :max="Math.max( ...lyrics.map(e => Math.max( ...e.map(e2 => e2.word.length ))) ) - 1"
+                            :disabled="!lyrics.length"
+                            v-model="wordLengthLimit"
+                            @change="(e) => wordLengthLimit > Math.max( ...lyrics.map(e => Math.max( ...e.map(e2 => e2.word.length ))) ) - 1 ? wordLengthLimit = Math.max( ...lyrics.map(e => Math.max( ...e.map(e2 => e2.word.length ))) ) - 1 : e.target.value < 0 || isNaN(parseFloat(e.target.value)) ? wordLengthLimit = 0 : {}"
+                        >
+                    </label>
+                
+                    <label class="flex flex-col items-center">
+                        <h2 class="font-bold text-xl mt-4 mb-2">Autospace:</h2>
+                        <input 
+                            class="cursor-pointer"
+                            type="checkbox"
+                            v-model="autospace"
+                        >
+                    </label>
+                
+                    <label class="flex flex-col items-center">
+                        <h2 class="font-bold text-xl mt-4 mb-2">Free verse changing:</h2>
+                        <input 
+                            class="cursor-pointer"
+                            type="checkbox"
+                            v-model="freeVerseChanging"
+                        >
+                    </label>
+                
+                    <button
+                        class="button mt-6"
+                        :tabindex="tabindex"
+                        @click="lastSave != JSON.stringify({ ...exportData(false), id: '' }) ? quitWarningVisible = true : quit()"
+                    >Quit to main menu</button>
+                </div>
+            </div>
         </div>
-        
-        <SongAndBackgroundInputs
-            :tabindex="tabindex"
-            :defaultBackgroundImage="backgroundImage"
-            :defaultSong="song"
-            :minDuration="Math.max(partsWithoutLyrics.length ? partsWithoutLyrics[partsWithoutLyrics.length - 1].end : 0, backgroundFilters.length ? backgroundFilters[backgroundFilters.length - 1].start : 0)"
-            @backgroundImageSet="(newBackgroundImage) => backgroundImage = newBackgroundImage"
-            @songLoaded="(newSong, newAudio, newSongDuration) => onSongLoad(newSong, newAudio, newSongDuration)"
-        />
-
-        <h2 class="font-bold text-xl mt-4 mb-2">Background filters:</h2>
-        
-        <p>
-            Hue-rotate for testing: 
-            <b>{{ testHueRotate }}°</b>
-        </p>
-        <div class="flex gap-2 mb-1.5 mt-1">
-            <input 
-                v-model="testHueRotate"
-                min="0"
-                max="360"
-                type="range"
-                :tabindex="tabindex"
-            >
-            <input 
-                class="input w-35"
-                v-model="testHueRotate"
-                type="number"
-                :tabindex="tabindex"
-                @change="(e) => isNaN(parseFloat(e.target.value)) ? testHueRotate = 0 : {}"
-            >
-        </div>
-
-        <p>
-            Brightness for testing: 
-            <b>{{ testBrightness }}%</b>
-        </p>
-        <div class="flex gap-2 mb-1.5 mt-1">
-            <input 
-                v-model="testBrightness"
-                min="0"
-                max="500"
-                type="range"
-                :tabindex="tabindex"
-            >
-            <input 
-                class="input w-35"
-                v-model="testBrightness"
-                type="number"
-                :tabindex="tabindex"
-                @change="(e) => isNaN(parseFloat(e.target.value)) ? testBrightness = 0 : {}"
-            >
-        </div>
-
-        <p v-for="filterData, idx in backgroundFilters">
-            {{ Math.round(filterData.start * 100) / 100 + "s | " + filterData.hue + "° | " + filterData.brightness + "% | " + Math.round(filterData.transitionDuration * 100) / 100 + (filterData.transitionDuration ? "s (" + Math.round((filterData.start - filterData.transitionDuration) * 100) / 100 + "s - " + Math.round(filterData.start * 100) / 100 + "s)" : "s (instant)") }}
-            <button
-                class="button p-0 w-8 my-0.75"
-                title="Remove."
-                :tabindex="tabindex"
-                @click="backgroundFilters = backgroundFilters.filter((e, idx2) => idx != idx2)"
-            >X</button>
-        </p>
-        <InputsAdd 
-            :labels="['Start time', 'Hue-rotate', 'Brightness', 'Transition duration']"
-            :maxValues="[songDuration, Infinity, Infinity, Infinity]"
-            limits="transition"
-            :array="backgroundFilters"
-            :disabledInfo="!songDuration ? 'Add a song first.' : ''"
-            :tabindex=tabindex
-            @add="(start, hue, brightness, transitionDuration) => backgroundFilters = [ ...backgroundFilters, { start: start, hue: hue, brightness: brightness, transitionDuration: transitionDuration }].sort((a,b) => a.start - b.start)"
-        />
-
-        <p class="mt-2">The transition takes place before the start time.</p>
-
-        <h2 class="font-bold text-xl mt-4 mb-2">Metadata:</h2>
-        <label>
-            Name:
-            <input 
-                class="input ml-1 mb-1.5"
-                type="text"
-                :tabindex="tabindex"
-                v-model="name"
-            >
-        </label>
-        <label>
-            Mapper:
-            <input 
-                class="input ml-1 mb-1.5"
-                type="text"
-                :tabindex="tabindex"
-                v-model="mapper"
-            >
-        </label>
-        <label class="flex items-center flex-col">
-            Additional information (can include links):
-            <textarea 
-                class="bg-white p-2 rounded-xl w-133 max-w-[calc(100vw-16px)] h-50 text-center text-black my-1"
-                type="text"
-                :tabindex="tabindex"
-                v-model="additionalInfo"
-            ></textarea>
-        </label>
-        <p>Example link: {{ "<https://example.com example link>" }}</p>
-
-        <h2 
-            :class="!songDuration ? 'font-bold text-xl mt-4 mb-2 text-neutral-400 cursor-not-allowed' : 'font-bold text-xl mt-4 mb-2'"
-            :title="!songDuration ? 'Add a song first.' : ''"
-        >
-            Parts without lyrics:
-        </h2>
-        <p v-for="part, idx in partsWithoutLyrics">
-            {{ Math.round(part.start * 100) / 100 + "s - " + Math.round(part.end * 100) / 100 + "s" }}
-            <button
-                class="button p-0 w-8 my-0.75"
-                title="Remove."
-                :tabindex="tabindex"
-                @click="partsWithoutLyrics = partsWithoutLyrics.filter((e, idx2) => idx != idx2)"
-            >X</button>
-        </p>
-        <InputsAdd 
-            :labels="['Start time', 'End time']"
-            :maxValues="[songDuration, songDuration]"
-            limits="startEnd"
-            :array="partsWithoutLyrics"
-            :disabledInfo="!songDuration ? 'Add a song first.' : ''"
-            :tabindex="tabindex"
-            @add="(start, end) => partsWithoutLyrics = [ ...partsWithoutLyrics, { start: start, end: end }].sort((a,b) => a.start - b.start)"
-        />
-
-        <label 
-            class="flex flex-col items-center has-disabled:text-neutral-400 has-disabled:cursor-not-allowed"
-            :title="!partsWithoutLyrics.length ? 'Add a part without lyrics first.' : ''"
-        >
-            <h2 class="font-bold text-xl mt-4 mb-2">Force-skip parts without lyrics:</h2>
-            <input 
-                class="cursor-pointer disabled:cursor-not-allowed"
-                :disabled="!partsWithoutLyrics.length"
-                :tabindex="tabindex"
-                type="checkbox"
-                v-model="forceskip"
-            >
-        </label>
-
-        <div class="flex flex-row items-center mt-8 gap-3 max-w-full">
-            <hr class="w-25 border-t-3">
-            <h1 class="font-bold text-2xl">Editor/playtesting settings</h1>
-            <hr class="w-25 border-t-3">
-        </div>
-
-        <SpeedSelector
-            :defaultSpeed="speed"
-            :tabindex="tabindex"
-            @changed="(newSpeed) => speed = newSpeed"
-        />
-
-        <label 
-            class="flex flex-col items-center has-disabled:text-neutral-400 has-disabled:cursor-not-allowed"
-            :title="forceskip ?
-                        'Force-skip is enabled instead.' 
-                        : !partsWithoutLyrics.length ?
-                            'Add a part without lyrics first.'
-                            : ''"
-        >
-            <h2 class="font-bold text-xl mt-4 mb-2">Skip parts without lyrics:</h2>
-            <input 
-                class="cursor-pointer disabled:cursor-not-allowed"
-                :disabled="forceskip || !partsWithoutLyrics.length"
-                :tabindex="tabindex"
-                type="checkbox"
-                v-model="skipLyricless"
-            >
-        </label>
-
-        <LyricsCustomization 
-            variant="editor"
-            :default="lyricsSettings"
-            :lyrics="lyrics"
-            :tabindex="tabindex"
-            @settingChanged="(name, value) => lyricsSettings[name] = value"
-        />
-        <p v-if="lyrics.length && !lyrics.map((e) => e.map((e2) => { return lyricsSettings.accentLetters ? e2 : { word: e2.word.normalize('NFKD').replace(/\p{Diacritic}/gu, ''), delay: e2.delay } }).map((e2) => { return lyricsSettings.specialCharacters ? e2 : { word: e2.word.replace(/\P{Letter}/gu, ''), delay: e2.delay } }).filter((e2) => e2.word)).filter((e) => e.length).length">
-            These settings remove all the lyrics, so playtesting will immediately end.
-        </p>
-
-        <label 
-            class="has-disabled:text-neutral-400 has-disabled:cursor-not-allowed"
-            :title="lyrics.length ? '' : 'Add lyrics first.'"
-        >
-            <h2 class="font-bold text-xl mt-4">Word length limit:</h2>
-            <p class="mb-2">(0 means no limit)</p>
-            <input 
-                class="input w-27.5"
-                type="number"
-                min="0"
-                :max="Math.max( ...lyrics.map(e => Math.max( ...e.map(e2 => e2.word.length ))) ) - 1"
-                :disabled="!lyrics.length"
-                v-model="wordLengthLimit"
-                @change="(e) => wordLengthLimit > Math.max( ...lyrics.map(e => Math.max( ...e.map(e2 => e2.word.length ))) ) - 1 ? wordLengthLimit = Math.max( ...lyrics.map(e => Math.max( ...e.map(e2 => e2.word.length ))) ) - 1 : e.target.value < 0 || isNaN(parseFloat(e.target.value)) ? wordLengthLimit = 0 : {}"
-            >
-        </label>
-
-        <label class="flex flex-col items-center">
-            <h2 class="font-bold text-xl mt-4 mb-2">Autospace:</h2>
-            <input 
-                class="cursor-pointer"
-                type="checkbox"
-                v-model="autospace"
-            >
-        </label>
-
-        <button
-            class="button mt-6"
-            :tabindex="tabindex"
-            @click="lastSave != JSON.stringify({ ...exportData(false), id: '' }) ? quitWarningVisible = true : quit()"
-        >Quit to main menu</button>
     </main>
 
     <!-- main editor / lyrics mode -->

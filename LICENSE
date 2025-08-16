@@ -1,8 +1,8 @@
-Everything in the JSON files located in /public/maps/ except of the data under the backgroundImage key is licensed under the same license as the song. The license can be found under the additionalInfo key in almost every JSON file or in-game. If the license is absent, licensing terms provided on the page of the song to which there's always a link in the same place apply instead. In each file the image under the backgroundImage key is licensed under the Unsplash License. The link to the page from which the image comes from, which also includes a link to the license is also under the additionalInfo key and in-game. The mp3 files in /src/songSamples/ are licensed under the same license excluding the image part as JSON files in /public/maps/ of the corresponding file name.
+Everything in the JSON files located in /public/maps/ except of the data under the backgroundImage key is licensed under the same license as the song. The license can be found under the additionalInfo key in almost every JSON file or in-game. If the license is absent, licensing terms provided on the page of the song to which there's always a link in the same place apply instead. In each file the image under the backgroundImage key is licensed under the Unsplash License. The link to the page from which the image comes from, which also includes a link to the license is also under the additionalInfo key and in-game. The mp3 files in /public/songSamples/ are licensed under the same license excluding the image part as JSON files in /public/maps/ of the corresponding file name.
 
-/public/favicon.ico and the contents of /src/assets/ are licensed under CC-BY-SA 4.0
+/public/favicon.ico /public/background.png /public/background.jpg and the contents of /src/assets/ are licensed under CC-BY-SA 4.0
 
-/src/configs/config.json and a small part of /src/views/Home.vue marked with a comment are in the public domain.
+/src/configs/config.json is in the public domain.
 
 Everything else is licensed under GNU AGPL 3.0
 

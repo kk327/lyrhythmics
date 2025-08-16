@@ -6,7 +6,9 @@
             "wpm": 64,
             "length": 147,
             "lyriclessLength": 53,
-            "commercialAllowed": false
+            "commercialAllowed": false,
+            "songSampleSize": 132,
+            "mapSize": 11377
         },
         {
             "name": "Cloudier - Lapse",
@@ -14,7 +16,9 @@
             "wpm": 62,
             "length": 306,
             "lyriclessLength": 88,
-            "commercialAllowed": false
+            "commercialAllowed": false,
+            "songSampleSize": 134,
+            "mapSize": 18250
         },
         {
             "name": "StopItBahis - WHAT U SAY ISNT",
@@ -22,7 +26,9 @@
             "wpm": 96,
             "length": 95,
             "lyriclessLength": 5,
-            "commercialAllowed": false
+            "commercialAllowed": false,
+            "songSampleSize": 145,
+            "mapSize": 8804
         },
         {
             "name": "Zoolsepicmusic - You're Not Alone",
@@ -30,7 +36,9 @@
             "wpm": 32,
             "length": 179,
             "lyriclessLength": 32,
-            "commercialAllowed": true
+            "commercialAllowed": true,
+            "songSampleSize": 127,
+            "mapSize": 10211
         },
         {
             "name": "StopItBahis - SILVER HEARTZ",
@@ -38,7 +46,9 @@
             "wpm": 122,
             "length": 200,
             "lyriclessLength": 0,
-            "commercialAllowed": false
+            "commercialAllowed": false,
+            "songSampleSize": 150,
+            "mapSize": 17821
         },
         {
             "name": "Matt$ - Always (ft. m1nute)",
@@ -46,7 +56,9 @@
             "wpm": 99,
             "length": 134,
             "lyriclessLength": 23,
-            "commercialAllowed": false
+            "commercialAllowed": false,
+            "songSampleSize": 141,
+            "mapSize": 6727
         },
         {
             "name": "MilkMan-Dan - An Angel Falls",
@@ -54,7 +66,9 @@
             "wpm": 45,
             "length": 208,
             "lyriclessLength": 54,
-            "commercialAllowed": true
+            "commercialAllowed": true,
+            "songSampleSize": 117,
+            "mapSize": 8173
         },
         {
             "name": "Perfect Shade - Reaching High",
@@ -62,7 +76,9 @@
             "wpm": 54,
             "length": 191,
             "lyriclessLength": 16,
-            "commercialAllowed": true
+            "commercialAllowed": true,
+            "songSampleSize": 138,
+            "mapSize": 9438
         },
         {
             "name": "Matt$ - Cool Breeze",
@@ -70,7 +86,9 @@
             "wpm": 102,
             "length": 182,
             "lyriclessLength": 62,
-            "commercialAllowed": false
+            "commercialAllowed": false,
+            "songSampleSize": 150,
+            "mapSize": 12495
         },
         {
             "name": "SchattenDnB - Leaves",
@@ -78,7 +96,9 @@
             "wpm": 72,
             "length": 69,
             "lyriclessLength": 13,
-            "commercialAllowed": true
+            "commercialAllowed": true,
+            "songSampleSize": 141,
+            "mapSize": 6806
         },
         {
             "name": "DJStriden - Light The World Pt II",
@@ -86,7 +106,9 @@
             "wpm": 70,
             "length": 142,
             "lyriclessLength": 14,
-            "commercialAllowed": true
+            "commercialAllowed": true,
+            "songSampleSize": 184,
+            "mapSize": 5542
         },
         {
             "name": "MTSsmitty - Wings of Goodbye",
@@ -94,7 +116,9 @@
             "wpm": 106,
             "length": 104,
             "lyriclessLength": 20,
-            "commercialAllowed": true
+            "commercialAllowed": true,
+            "songSampleSize": 182,
+            "mapSize": 3698
         },
         {
             "name": "Cloudier - A Centimetre Apart",
@@ -102,7 +126,9 @@
             "wpm": 91,
             "length": 265,
             "lyriclessLength": 97,
-            "commercialAllowed": false
+            "commercialAllowed": false,
+            "songSampleSize": 182,
+            "mapSize": 11772
         }
     ]
 }

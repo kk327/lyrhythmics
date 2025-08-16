@@ -1,13 +1,14 @@
 <script setup>
     import { ref, onUnmounted, watch } from 'vue';
-    import defaultBackground from '@/assets/background.png'
     import config from "@/configs/config.json";
     import PinkHeader from './PinkHeader.vue';
     import InputsAdd from './InputsAdd.vue';
-    import SongAndBackgroundInputs from '@/components/SongAndBackgroundInputs.vue';
+    import SongAndBackgroundInputs from './SongAndBackgroundInputs.vue';
+    import MenuPanel from './MenuPanel.vue'
 
     const props = defineProps([
-        "startData"
+        "startData",
+        "defaultBackground"
     ]);
 
     const emit = defineEmits([
@@ -28,7 +29,7 @@
     const inludeTheHueRotate = ref(false);
 
     const theme = localStorage.getItem("theme") ? JSON.parse(localStorage.getItem("theme")) : config.defaultTheme;
-    const defaultBackgroundImage = theme.backgroundImage == "default" ? defaultBackground : theme.backgroundImage;
+    const defaultBackgroundImage = theme.backgroundImage == "default" ? props.defaultBackground : theme.backgroundImage;
     const backgroundImage = ref(props.startData.backgroundImage);
 
     const songLrcName = ref("");
@@ -165,190 +166,193 @@
 </script>
 
 <template>
-    <PinkHeader text="Automap" />
+    <MenuPanel
+        :closeButton="true"
+        @close="$emit('cancel')"
+    >
+        <PinkHeader text="Automap" />
 
-    <p class="mb-3 max-w-175 text-center">
-        It's recommended to get a .srt, .vtt or .lrc file. Some ways to get them are looking up the song name and the file extension in a search engine, extracting them from music videos, or searching on websites dedicated to them. You should be able to get them for a big part of popular songs. 
-        <br class="mb-3">
-        .srt and .vtt are video subtitle formats, and .lrc is made specifically for lyrics. .srt and .vtt files contain timestamps for specific lines, as in the start and end time, while .lrc only specifies the start time. However some .lrc files contain empty verses to indicate the end times of real verses, but if that's not the case, automap assumes the verse ends when the next verse starts, meaning it will be less accurate. 
-        <br class="mb-3">
-        The start time of lyrics can differ between your audio file and your lyrics file by some seconds due to some songs having versions with and without an intro, if that's the case, listen to when the first verse starts in the audio file, compare it to the lyrics file text or the text under the lyrics offset input, and set the lyrics offset accordingly.
-        <br class="mb-3">
-        If you can't find any files of that type for the song that you want to play, you can use automap with just text lyrics. Then it spreads words in even distances from each other except of the parts without lyrics. When playing, you can use the right and left arrow keys while holding shift to skip the song by 2 seconds without moving the lyrics if they're significantly desynced at the time.
-    </p>
+        <p class="mb-3 max-w-175">
+            It's recommended to get a .srt, .vtt or .lrc file. Some ways to get them are looking up the song name and the file extension in a search engine, extracting them from music videos, or searching on websites dedicated to them. You should be able to get them for a big part of popular songs. 
+            <br class="mb-3">
+            .srt and .vtt are video subtitle formats, and .lrc is made specifically for lyrics. .srt and .vtt files contain timestamps for specific lines, as in the start and end time, while .lrc only specifies the start time. However some .lrc files contain empty verses to indicate the end times of real verses, but if that's not the case, automap assumes the verse ends when the next verse starts, meaning it will be less accurate. 
+            <br class="mb-3">
+            The start time of lyrics can differ between your audio file and your lyrics file by some seconds due to some songs having versions with and without an intro, if that's the case, listen to when the first verse starts in the audio file, compare it to the lyrics file text or the text under the lyrics offset input, and set the lyrics offset accordingly.
+            <br class="mb-3">
+            If you can't find any files of that type for the song that you want to play, you can use automap with just text lyrics. Then it spreads words in even distances from each other except for the parts without lyrics. When playing, you can use the right and left arrow keys while holding shift to skip the song by 2 seconds without moving the lyrics if they're significantly desynced at the time.
+        </p>
 
-    <label class="flex flex-col items-center">
-        <h2 class="font-bold text-xl mb-2">Lyrics:</h2>
-        <textarea 
-            class="bg-white p-2 rounded-xl w-133 max-w-[calc(100vw-16px)] h-50 text-center text-black"
-            v-model="lyrics"
-            @change="lyricsType == 'text' ? {} : parseLyrics()"
-        ></textarea>
-    </label>
-
-    <div class="flex gap-3 mt-2">
-        <label class="cursor-pointer">
-            <input 
-                class="cursor-pointer"
-                type="radio" 
-                value="text"
-                v-model="lyricsType"
-            >
-            Text
+        <label class="flex flex-col items-center">
+            <h2 class="font-bold text-xl mb-2">Lyrics:</h2>
+            <textarea 
+                class="bg-white p-2 rounded-xl w-133 max-w-[calc(100vw-16px)] h-50 text-center text-black"
+                v-model="lyrics"
+                @change="lyricsType == 'text' ? {} : parseLyrics()"
+            ></textarea>
         </label>
 
-        <label class="cursor-pointer">
-            <input 
-                class="cursor-pointer"
-                type="radio" 
-                value="srt/vtt"
-                v-model="lyricsType"
-            >
-            .srt/.vtt
-        </label>
+        <div class="flex gap-3 mt-2">
+            <label class="cursor-pointer">
+                <input 
+                    class="cursor-pointer"
+                    type="radio" 
+                    value="text"
+                    v-model="lyricsType"
+                >
+                Text
+            </label>
 
-        <label class="cursor-pointer">
-            <input 
-                class="cursor-pointer"
-                type="radio" 
-                value="lrc"
-                v-model="lyricsType"
-            >
-            .lrc
-        </label>
-    </div>
-    <label class="mt-2 text-center">
-        From a .srt, .vtt or .lrc file:
-        <input 
-            class="button py-1 font-normal ml-1 mb-1.5"
-            type="file"
-            accept=".srt, .vtt, .lrc"
-            @change="(e) => loadFromFile(e.target.files[0])"
-        >
-    </label>
+            <label class="cursor-pointer">
+                <input 
+                    class="cursor-pointer"
+                    type="radio" 
+                    value="srt/vtt"
+                    v-model="lyricsType"
+                >
+                .srt/.vtt
+            </label>
 
-    <label 
-        v-if="lyricsType != 'text'"
-        class="text-center"
-    >
-        <h2 class="font-bold text-xl mt-4 mb-2">Lyrics offset:</h2>
-        <input 
-            class="input w-32"
-            type="number"
-            :min="parsedLyrics.length ? parsedLyrics[0].start * -1 : 0"
-            max="120"
-            v-model="lyricsOffset"
-            @change="(e) => lyricsOffset > 120 ? 
-                        lyricsOffset = 120 
-                        : e.target.value < (parsedLyrics.length ? parsedLyrics[0].start * -1 : 0) ? 
-                            lyricsOffset = parsedLyrics.length ? parsedLyrics[0].start * -1 : 0
-                            : isNaN(parseFloat(e.target.value)) ? 
-                                lyricsOffset = 0
-                                : {}"
-        >
-    </label>
-    <p 
-        v-if="lyricsType != 'text' && parsedLyrics.length"
-        class="mt-1"
-    >The lyrics will start at {{ Math.round((parsedLyrics[0].start + lyricsOffset) * 100) / 100 }}s.</p>
-
-    <SongAndBackgroundInputs
-        :defaultBackgroundImage="backgroundImage"
-        @backgroundImageSet="(newBackgroundImage) => backgroundImageSet(newBackgroundImage)"
-        @songLoaded="(newSong, newAudio, newSongDuration, songName) => onSongLoad(newSong, newAudio, newSongDuration, songName)"
-    />
-
-    <h2 
-        :class="!songDuration ? 'font-bold text-xl mt-4 mb-2 text-neutral-400 cursor-not-allowed' : 'font-bold text-xl mt-4 mb-2'"
-        :title="!songDuration ? 'Add a song first.' : ''"
-    >
-        Parts without lyrics:
-    </h2>
-    <p v-for="part, idx in partsWithoutLyrics">
-        {{ part.start + "s - " + part.end + "s" }}
-        <button
-            class="button p-0 w-8 ml-1"
-            @click="partsWithoutLyrics = partsWithoutLyrics.filter((e, idx2) => idx != idx2)"
-        >X</button>
-    </p>
-    <InputsAdd 
-        :labels="['Start time', 'End time']"
-        :maxValues="[songDuration, songDuration]"
-        limits="startEnd"
-        :array="partsWithoutLyrics"
-        :disabledInfo="!songDuration ? 'Add a song first.' : ''"
-        @add="(start, end) => partsWithoutLyrics = [ ...partsWithoutLyrics, { start: start, end: end }].sort((a,b) => a.start - b.start)"
-    />
-    <p
-        v-if="lyricsType != 'text'"
-        class="mt-1 text-center max-w-150"
-    >
-        If you don't specify any, parts without lyrics in the file that are at least 8 seconds long will be added, shorter by one second from each side to provide a transition.
-    </p>
-
-    <label class="flex flex-col items-center">
-        <h2 class="font-bold text-xl mt-4 mb-2">Background hue-rotate:</h2>
-        <p class="font-bold">{{ hueRotate }}° {{ backgroundImage == defaultBackgroundImage && hueRotate == theme.backgroundHueRotate ? "(theme default)" : "" }}</p>
-        <div class="flex gap-2 mt-1 mb-1">
-            <input 
-                v-model="hueRotate"
-                min="0"
-                max="360"
-                type="range"
-                @input="$emit('hueRotateChanged', hueRotate)"
-            >
+            <label class="cursor-pointer">
+                <input 
+                    class="cursor-pointer"
+                    type="radio" 
+                    value="lrc"
+                    v-model="lyricsType"
+                >
+                .lrc
+            </label>
         </div>
-    </label>
+        <label class="mt-2">
+            From a .srt, .vtt or .lrc file:
+            <input 
+                class="button py-1 font-normal ml-1 mb-1.5"
+                type="file"
+                accept=".srt, .vtt, .lrc"
+                @change="(e) => loadFromFile(e.target.files[0])"
+            >
+        </label>
 
-    <label 
-        v-if="backgroundImage == defaultBackgroundImage && hueRotate == theme.backgroundHueRotate"
-        class="cursor-pointer text-center"
-    >
-        <input 
-            class="mr-1 cursor-pointer disabled:cursor-not-allowed"
-            type="checkbox"
-            v-model="inludeTheHueRotate"
+        <label v-if="lyricsType != 'text'">
+            <h2 class="font-bold text-xl mt-4 mb-2">Lyrics offset:</h2>
+            <input 
+                class="input w-32"
+                type="number"
+                :min="parsedLyrics.length ? parsedLyrics[0].start * -1 : 0"
+                max="120"
+                v-model="lyricsOffset"
+                @change="(e) => lyricsOffset > 120 ? 
+                            lyricsOffset = 120 
+                            : e.target.value < (parsedLyrics.length ? parsedLyrics[0].start * -1 : 0) ? 
+                                lyricsOffset = parsedLyrics.length ? parsedLyrics[0].start * -1 : 0
+                                : isNaN(parseFloat(e.target.value)) ? 
+                                    lyricsOffset = 0
+                                    : {}"
+            >
+        </label>
+        <p 
+            v-if="lyricsType != 'text' && parsedLyrics.length"
+            class="mt-1"
+        >The lyrics will start at {{ Math.round((parsedLyrics[0].start + lyricsOffset) * 100) / 100 }}s.</p>
+
+        <SongAndBackgroundInputs
+            :defaultBackground="defaultBackground"
+            :defaultBackgroundImage="backgroundImage"
+            @backgroundImageSet="(newBackgroundImage) => backgroundImageSet(newBackgroundImage)"
+            @songLoaded="(newSong, newAudio, newSongDuration, songName) => onSongLoad(newSong, newAudio, newSongDuration, songName)"
+        />
+
+        <h2 
+            :class="!songDuration ? 'font-bold text-xl mt-4 mb-2 text-neutral-400 cursor-not-allowed' : 'font-bold text-xl mt-4 mb-2'"
+            :title="!songDuration ? 'Add a song first.' : ''"
         >
-        Include the hue-rotate in the map. Otherwise the theme default will be used.
-    </label>
+            Parts without lyrics:
+        </h2>
+        <p v-for="part, idx in partsWithoutLyrics">
+            {{ part.start + "s - " + part.end + "s" }}
+            <button
+                class="button p-0 w-8 ml-1"
+                @click="partsWithoutLyrics = partsWithoutLyrics.filter((e, idx2) => idx != idx2)"
+            >X</button>
+        </p>
+        <InputsAdd 
+            :labels="['Start time', 'End time']"
+            :maxValues="[songDuration, songDuration]"
+            limits="startEnd"
+            :array="partsWithoutLyrics"
+            :disabledInfo="!songDuration ? 'Add a song first.' : ''"
+            @add="(start, end) => partsWithoutLyrics = [ ...partsWithoutLyrics, { start: start, end: end }].sort((a,b) => a.start - b.start)"
+        />
+        <p
+            v-if="lyricsType != 'text'"
+            class="mt-1 max-w-150"
+        >
+            If you don't specify any, parts without lyrics in the file that are at least 8 seconds long will be added, shorter by one second from each side to provide a transition.
+        </p>
 
-    <div class="flex gap-3 mt-3">
-        <button
-            class="button"
-            @click="$emit('cancel')"
-        >Cancel</button>
+        <label class="flex flex-col items-center">
+            <h2 class="font-bold text-xl mt-4 mb-2">Background hue-rotate:</h2>
+            <p class="font-bold">{{ hueRotate }}° {{ backgroundImage == defaultBackgroundImage && hueRotate == theme.backgroundHueRotate ? "(theme default)" : "" }}</p>
+            <div class="flex gap-2 mt-1 mb-1">
+                <input 
+                    v-model="hueRotate"
+                    min="0"
+                    max="360"
+                    type="range"
+                    @input="$emit('hueRotateChanged', hueRotate)"
+                >
+            </div>
+        </label>
 
-        <button
-            class="button"
-            :disabled="!songDuration || !lyrics.split('\n').some(e => e.split(' ').filter(e => e).length) || (!parsedLyrics.length && lyricsType != 'text')"
-            :title="!songDuration ? 'Add a song first.'
-                        : !lyrics.split('\n').some(e => e.split(' ').filter(e => e).length) ?
-                            'Input the lyrics first.'
-                            : !parsedLyrics.length && lyricsType != 'text' ?
-                                'The lyrics cannot be parsed due to an error. Make sure everything is correct, or if you didn\'t intend to parse them as a .srt, .vtt or .lrc file, change the type to text.' 
-                                : ''"
-            @click="$emit('setData', {
-                name: songLrcName ? 
-                        songLrcName 
-                        : songFileName ? 
-                            songFileName 
-                            : 'Unnamed map',
-                mapper: 'Automap' + (lyricsType == 'lrc' && lyrics.match(/(?<=\[by:).*(?=\])/) ? ' (.lrc by ' + lyrics.match(/(?<=\[by:).*(?=\])/)[0].trim() + ')' : ''),
-                additionalInfo: '',
-                song: song,
-                backgroundImage: backgroundImage == defaultBackgroundImage ? 'default' : backgroundImage,
-                backgroundFilters: backgroundImage == defaultBackgroundImage && hueRotate == theme.backgroundHueRotate && !preventHueRotainludeTheHueRotateteOverriding ? [] : [{ start: 0, hue: hueRotate, brightness: 100, transitionDuration: 0}],
-                lyrics: calculateLyrics(),
-                partsWithoutLyrics: lyricsType == 'text' ? 
-                                        partsWithoutLyrics.map((e) => { return { start: e.start == 0 ? 0 : e.start + 1, end: e.end - 1 }}).filter((e) => e.end > e.start) 
-                                        : partsWithoutLyrics.length ?
-                                            partsWithoutLyrics
-                                            : calculatedLyriclessParts,
-                forceskip: false,
-                downloadButton: true,
-                automapSongSkipping: lyricsType == 'text',
-                id: new Array(32).fill('QWERTYUIOPASDFGHJKLZXCVBNMqwertyuiopasdfghjklzxcvbnm1234567890').map((e) => e[Math.floor(Math.random() * e.length)]).join('')
-            })"
-        >Map</button>
-    </div>
+        <label 
+            v-if="backgroundImage == defaultBackgroundImage && hueRotate == theme.backgroundHueRotate"
+            class="cursor-pointer"
+        >
+            <input 
+                class="mr-1 cursor-pointer disabled:cursor-not-allowed"
+                type="checkbox"
+                v-model="inludeTheHueRotate"
+            >
+            Include the hue-rotate in the map(otherwise the theme default will be used)
+        </label>
+
+        <div class="flex gap-3 mt-3">
+            <button
+                class="button"
+                @click="$emit('cancel')"
+            >Cancel</button>
+
+            <button
+                class="button"
+                :disabled="!songDuration || !lyrics.split('\n').some(e => e.split(' ').filter(e => e).length) || (!parsedLyrics.length && lyricsType != 'text')"
+                :title="!songDuration ? 'Add a song first.'
+                            : !lyrics.split('\n').some(e => e.split(' ').filter(e => e).length) ?
+                                'Input the lyrics first.'
+                                : !parsedLyrics.length && lyricsType != 'text' ?
+                                    'The lyrics cannot be parsed due to an error. Make sure everything is correct, or if you didn\'t intend to parse them as a .srt, .vtt or .lrc file, change the type to text.' 
+                                    : ''"
+                @click="$emit('setData', {
+                    name: songLrcName ? 
+                            songLrcName 
+                            : songFileName ? 
+                                songFileName 
+                                : 'Unnamed map',
+                    mapper: 'Automap' + (lyricsType == 'lrc' && lyrics.match(/(?<=\[by:).*(?=\])/) ? ' (.lrc by ' + lyrics.match(/(?<=\[by:).*(?=\])/)[0].trim() + ')' : ''),
+                    additionalInfo: '',
+                    song: song,
+                    backgroundImage: backgroundImage == defaultBackgroundImage ? 'default' : backgroundImage,
+                    backgroundFilters: backgroundImage == defaultBackgroundImage && hueRotate == theme.backgroundHueRotate && !preventHueRotainludeTheHueRotateteOverriding ? [] : [{ start: 0, hue: hueRotate, brightness: 100, transitionDuration: 0}],
+                    lyrics: calculateLyrics(),
+                    partsWithoutLyrics: lyricsType == 'text' ? 
+                                            partsWithoutLyrics.map((e) => { return { start: e.start == 0 ? 0 : e.start + 1, end: e.end - 1 }}).filter((e) => e.end > e.start) 
+                                            : partsWithoutLyrics.length ?
+                                                partsWithoutLyrics
+                                                : calculatedLyriclessParts,
+                    forceskip: false,
+                    downloadButton: true,
+                    automapSongSkipping: lyricsType == 'text',
+                    id: new Array(32).fill('QWERTYUIOPASDFGHJKLZXCVBNMqwertyuiopasdfghjklzxcvbnm1234567890').map((e) => e[Math.floor(Math.random() * e.length)]).join('')
+                })"
+            >Map</button>
+        </div>
+    </MenuPanel>
 </template>

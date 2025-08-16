@@ -38,27 +38,28 @@
 </script>
 
 <template>
-    <h2
-        v-if="variant != 'mapCustomization' || settingList.some((e) => e.allowed)" 
-        :class="variant == 'editor' && !settingList.some((e) => e.allowed) ? 'font-bold text-xl mt-4 mb-2 text-neutral-400 cursor-not-allowed' : 'font-bold text-xl mt-4 mb-2'"
-        :title="variant == 'editor' && !settingList.some((e) => e.allowed) ? 'No lyrics contain any of those.' : ''"
-    >Lyrics customization:</h2>
-    
-    <label 
-        v-for="setting of settingList"
-        class="cursor-pointer has-disabled:cursor-not-allowed has-disabled:text-neutral-400"
-        :title="variant == 'editor' && !setting.allowed ? 'No lyrics contain ' + setting.displayName.toLowerCase() + '.' : ''"
-    >
-        <div v-if="variant != 'mapCustomization' || setting.allowed">
-            <input 
-                class="mr-1 cursor-pointer disabled:cursor-not-allowed"
-                type="checkbox"
-                v-model="settings[setting.codeName]"
-                :disabled="variant == 'editor' && !setting.allowed"
-                :tabindex="tabindex"
-                @change="(e) => $emit('settingChanged', setting.codeName, settings[setting.codeName])"
-            >
-            {{ setting.displayName }}
-        </div>
-    </label>
+    <div v-if="variant != 'mapCustomization' || settingList.some((e) => e.allowed)">
+        <h2
+            :class="variant == 'editor' && !settingList.some((e) => e.allowed) ? 'font-bold text-xl mt-4 mb-2 text-neutral-400 cursor-not-allowed' : 'font-bold text-xl mt-4 mb-2'"
+            :title="variant == 'editor' && !settingList.some((e) => e.allowed) ? 'No lyrics contain any of those.' : ''"
+        >Lyrics customization:</h2>
+
+        <label 
+            v-for="setting of settingList"
+            class="cursor-pointer has-disabled:cursor-not-allowed has-disabled:text-neutral-400"
+            :title="variant == 'editor' && !setting.allowed ? 'No lyrics contain ' + setting.displayName.toLowerCase() + '.' : ''"
+        >
+            <div v-if="variant != 'mapCustomization' || setting.allowed">
+                <input 
+                    class="mr-1 cursor-pointer disabled:cursor-not-allowed"
+                    type="checkbox"
+                    v-model="settings[setting.codeName]"
+                    :disabled="variant == 'editor' && !setting.allowed"
+                    :tabindex="tabindex"
+                    @change="(e) => $emit('settingChanged', setting.codeName, settings[setting.codeName])"
+                >
+                {{ setting.displayName }}
+            </div>
+        </label>
+    </div>
 </template>
