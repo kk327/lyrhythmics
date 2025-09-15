@@ -81,7 +81,7 @@
     const songPosition = ref(0);
     let previouslyInsideLyricless = false;
     
-    const targetFPS = localStorage.getItem("targetFPS") ? localStorage.getItem("targetFPS") : 60;
+    const targetFPS = localStorage.getItem("targetFPS") ?? 60;
     const nonDecimalCurrentTime = localStorage.getItem("nonDecimalCurrentTime");
     const decimalScore = localStorage.getItem("decimalScore");
     const reduceTransparency = localStorage.getItem("reduceTransparency");
@@ -121,7 +121,7 @@
     const lyricsSettingList = ["capitalization", "accentLetters", "specialCharacters"];
     const saveHighscores = ref(localStorage.getItem("saveHighscores"));
     const highscoreKey = props.data.id + "-" + speed.value + "-" + startTime.value + "-" + props.data.skipLyricless + "-" + lyricsSettingList.map((e) => props.data.lyricsSettings[e] ? '1' : '0').join("") + (props.data.wordLengthLimit ? "-wll" + props.data.wordLengthLimit : "") + (props.data.autospace ? "-as" : "") + (props.data.freeVerseChanging ? "-fvc" : "");
-    const highscore = ref(localStorage.getItem(highscoreKey) ? localStorage.getItem(highscoreKey) : -1);
+    const highscore = ref(localStorage.getItem(highscoreKey) ?? -1);
     const continuedWithSettings = ref(false);
     const mobile = navigator.userAgent.match(/Android|iPhone|iPad/);
 
@@ -292,7 +292,7 @@
             return;
         } else if (paused.value) {
             return;
-        }
+        } 
 
         song.playbackRate = speed.value;
         song.currentTime = song.currentTime ? song.currentTime : startTime.value;
@@ -449,10 +449,71 @@
         saveHighscores.value = true;
     }
 
-    function playingKeydown(e) {
+    function playingKeydown(e) {     
+        if (paused.value) {
+            return;
+        }
+
         if (e.key == "Escape") {
             paused.value = true;
-        } else if (!paused.value && props.data.automapSongSkipping) {
+        } else if (e.key == "Backspace" && Object.keys(inputs).map((key) => inputs[key]).findIndex((e) => e == document.activeElement) != -1 && document.activeElement.selectionStart == 0 && document.activeElement.selectionEnd == 0) {
+            if (Object.keys(inputs).map((key) => inputs[key]).findIndex((e) => e == document.activeElement) != 0) {
+                inputs[Object.keys(inputs).map((key) => inputs[key]).findIndex((e) => e == document.activeElement) - 1].setSelectionRange(inputs[Object.keys(inputs).map((key) => inputs[key]).findIndex((e) => e == document.activeElement) - 1].value.length, inputs[Object.keys(inputs).map((key) => inputs[key]).findIndex((e) => e == document.activeElement) - 1].value.length);
+                
+                setTimeout(() => {
+                    inputs[Object.keys(inputs).map((key) => inputs[key]).findIndex((e) => e == document.activeElement) - 1].focus();
+                }, 1);
+            } else if (typedLyricsId.value == checkedLyricsId.value + 1 || (props.data.freeVerseChanging && typedLyricsId.value != 0)) {
+                typedLyricsId.value--;
+                
+                setTimeout(() => {
+                    inputs = document.querySelectorAll("input");
+                    inputs[inputs.length - 1].setSelectionRange(inputs[inputs.length - 1].value.length, inputs[inputs.length - 1].value.length);
+
+                    setTimeout(() => {
+                        inputs[inputs.length - 1].focus();
+                    }, 1);
+                }, 0);
+            }
+        } else if ((e.key == "ArrowLeft" || e.key == "ArrowRight") && !shiftHeld && Object.keys(inputs).map((key) => inputs[key]).findIndex((e) => e == document.activeElement) != -1 && document.activeElement.selectionStart == document.activeElement.selectionEnd) {
+            if (e.key == "ArrowLeft" && document.activeElement.selectionStart == 0) {
+                if (Object.keys(inputs).map((key) => inputs[key]).findIndex((e) => e == document.activeElement) != 0) {
+                    inputs[Object.keys(inputs).map((key) => inputs[key]).findIndex((e) => e == document.activeElement) - 1].setSelectionRange(inputs[Object.keys(inputs).map((key) => inputs[key]).findIndex((e) => e == document.activeElement) - 1].value.length, inputs[Object.keys(inputs).map((key) => inputs[key]).findIndex((e) => e == document.activeElement) - 1].value.length);
+                    setTimeout(() => {
+                        inputs[Object.keys(inputs).map((key) => inputs[key]).findIndex((e) => e == document.activeElement) - 1].focus();
+                    }, 1);
+                } else if (typedLyricsId.value == checkedLyricsId.value + 1 || (props.data.freeVerseChanging && typedLyricsId.value != 0)) {
+                    typedLyricsId.value--;
+
+                    setTimeout(() => {
+                        inputs = document.querySelectorAll("input");
+                        inputs[inputs.length - 1].setSelectionRange(inputs[inputs.length - 1].value.length, inputs[inputs.length - 1].value.length);
+
+                        setTimeout(() => {
+                            inputs[inputs.length - 1].focus();
+                        }, 1);
+                    }, 0);
+                }
+            } else if (e.key == "ArrowRight" && document.activeElement.selectionEnd == document.activeElement.value.length) {                
+                if (Object.keys(inputs).map((key) => inputs[key]).findIndex((e) => e == document.activeElement) != Object.keys(inputs).length - 1) {
+                    inputs[Object.keys(inputs).map((key) => inputs[key]).findIndex((e) => e == document.activeElement) + 1].setSelectionRange(0, 0);
+                    setTimeout(() => {
+                        inputs[Object.keys(inputs).map((key) => inputs[key]).findIndex((e) => e == document.activeElement) + 1].focus();
+                    }, 1);
+                } else if (((typedLyricsId.value == checkedLyricsId.value && checkedWord.value == lyrics.value[checkedLyricsId.value].length - 1) || props.data.freeVerseChanging) && typedLyricsId.value != lyrics.value.length - 1) {
+                    typedLyricsId.value++;
+
+                    setTimeout(() => {
+                        inputs = document.querySelectorAll("input");
+                        inputs[0].setSelectionRange(0, 0);
+
+                        setTimeout(() => {
+                            inputs[0].focus();
+                        }, 1);
+                    }, 0);
+                }
+            }
+        } else if (props.data.automapSongSkipping) {
             if (e.key == "Shift") {
                 shiftHeld = true;
             } else if (shiftHeld && e.key == "ArrowLeft") {
@@ -465,7 +526,7 @@
     }
 
     function goToNextWord(currentIdx) {
-        inputLyrics.value[typedLyricsId.value][currentIdx] = inputLyrics.value[typedLyricsId.value][currentIdx].trim();
+        inputLyrics.value[typedLyricsId.value][currentIdx] = inputLyrics.value[typedLyricsId.value][currentIdx].replace(" ", "");
 
         if (currentIdx != lyrics.value[typedLyricsId.value].length - 1) {
             inputs[currentIdx + 1].focus();
@@ -595,6 +656,11 @@
         }
         paused.value = false;
     }
+
+    const a = ref(-1);
+    setInterval(() => {
+        a.value = Object.keys(inputs).map((key) => inputs[key]).findIndex((e) => e == document.activeElement)
+    }, 10);
 </script>
 
 <template>
@@ -633,7 +699,7 @@
                 :style="{ '-webkit-text-stroke-color': reduceTransparency || theme.inputText.forceOutline ? theme.inputText.outlineColor : '' }"
             >
                 <input 
-                    class="p-2 pt-1.5 text-center focus:border-white focus:backdrop-brightness-175 outline-0 border-t-2 border-white/0"
+                    class="playingInput p-2 pt-1.5 text-center focus:border-white focus:backdrop-brightness-175 outline-0 border-t-2 border-white/0"
                     type="text"
                     autocapitalize="none"
                     autocorrect="off"

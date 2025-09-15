@@ -7,24 +7,27 @@
         "defaultBackground", // background.png
         "defaultBackgroundImage",
         "defaultSong",
+        "defaultIncludeTheBackground",
         "minDuration",
         "backgroundImageTheme"
     ]);
 
     const emit = defineEmits([
         "backgroundImageSet",
-        "songLoaded"
+        "songLoaded",
+        "includeTheBackgroundChanged"
     ]);
 
     const song = ref("");
     const audio = ref(new Audio());
     const songDuration = ref(0);
     const songName = ref("");
-    const targetFPS = localStorage.getItem("targetFPS") ? localStorage.getItem("targetFPS") : 60;
+    const targetFPS = localStorage.getItem("targetFPS") ?? 60;
 
     const theme = localStorage.getItem("theme") ? JSON.parse(localStorage.getItem("theme")) : config.defaultTheme;
     const defaultBackgroundImage = theme.backgroundImage == "default" ? props.defaultBackground : theme.backgroundImage;
     const backgroundImage = ref(props.defaultBackgroundImage);
+    const includeTheBackground = ref(props.defaultIncludeTheBackground);
 
     const songPosition = ref(0);
     const playingSong = ref(false);
@@ -89,6 +92,14 @@
 
     watch(backgroundImage, () => {
         emit("backgroundImageSet", backgroundImage.value);
+        includeTheBackground.value = false;
+        emit("includeTheBackgroundChanged", includeTheBackground.value);
+    });
+
+    watch(includeTheBackground, () => {
+        if (!includeTheBackground.value && props.defaultBackground == backgroundImage.value && theme.backgroundImage != "default") {
+            backgroundImage.value = theme.backgroundImage;
+        }
     });
 
     watchEffect(() => {
@@ -142,7 +153,7 @@
 
 <template>
     <div v-if="!backgroundImageTheme">
-        <h2 class="font-bold text-xl mt-4 mb-2">Song:</h2>
+        <h2 class="font-bold text-xl mt-4 mb-2">Song</h2>
         <label class="flex flex-row items-center gap-2 flex-wrap justify-center mb-1.5">
             From file:
             <input 
@@ -197,7 +208,7 @@
         </div>
     </div>
 
-    <h2 :class="backgroundImageTheme ? 'font-bold text-xl mt-4' : 'font-bold text-xl mt-4 mb-2'">Background image:</h2>
+    <h2 :class="backgroundImageTheme ? 'font-bold text-xl mt-4' : 'font-bold text-xl mt-4 mb-2'">Background image</h2>
     <p 
         v-if="backgroundImageTheme"
         class="mb-2"
@@ -222,6 +233,7 @@
             @change="(e) => backgroundImage = e.target.value" 
         >
     </label>
+
     <button
         class="button mt-1.5"
         :disabled="backgroundImageTheme ? backgroundImage == defaultBackground : backgroundImage == defaultBackgroundImage"
@@ -229,4 +241,18 @@
         :title="(backgroundImageTheme ? backgroundImage == defaultBackground : backgroundImage == defaultBackgroundImage) ? 'This ' + (backgroundImageTheme ? 'theme' : 'map') + ' uses the default background already.' : ''"
         @click="backgroundImageTheme ? backgroundImage = defaultBackground : backgroundImage = defaultBackgroundImage"
     >Reset to default</button>
+
+    <label 
+        v-if="!backgroundImageTheme && (backgroundImage == defaultBackgroundImage || backgroundImage == defaultBackground)"
+        :class="!includeTheBackground ? 'cursor-pointer text-neutral-200 duration-200 mt-1' : 'cursor-pointer duration-200 mt-1'"
+    >
+        <input 
+            class="mr-1 cursor-pointer disabled:cursor-not-allowed"
+            :style="{ 'filter': !includeTheBackground ? 'brightness(0.85)' : '' }"
+            type="checkbox"
+            v-model="includeTheBackground"
+            @change="$emit('includeTheBackgroundChanged', includeTheBackground)"
+        >
+        {{ defaultBackground != backgroundImage ? 'Include the background image from your theme in the map' : 'Force the default background image' }}
+    </label>
 </template>

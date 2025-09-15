@@ -31,6 +31,7 @@
     const theme = localStorage.getItem("theme") ? JSON.parse(localStorage.getItem("theme")) : config.defaultTheme;
     const defaultBackgroundImage = theme.backgroundImage == "default" ? props.defaultBackground : theme.backgroundImage;
     const backgroundImage = ref(props.startData.backgroundImage);
+    const includeTheBackground = ref(false);
 
     const songLrcName = ref("");
     const songFileName = ref("");
@@ -183,7 +184,7 @@
         </p>
 
         <label class="flex flex-col items-center">
-            <h2 class="font-bold text-xl mb-2">Lyrics:</h2>
+            <h2 class="font-bold text-xl mb-2">Lyrics</h2>
             <textarea 
                 class="bg-white p-2 rounded-xl w-133 max-w-[calc(100vw-16px)] h-50 text-center text-black"
                 v-model="lyrics"
@@ -259,13 +260,14 @@
             :defaultBackgroundImage="backgroundImage"
             @backgroundImageSet="(newBackgroundImage) => backgroundImageSet(newBackgroundImage)"
             @songLoaded="(newSong, newAudio, newSongDuration, songName) => onSongLoad(newSong, newAudio, newSongDuration, songName)"
+            @includeTheBackgroundChanged="(newValue) => includeTheBackground = newValue"
         />
 
         <h2 
             :class="!songDuration ? 'font-bold text-xl mt-4 mb-2 text-neutral-400 cursor-not-allowed' : 'font-bold text-xl mt-4 mb-2'"
             :title="!songDuration ? 'Add a song first.' : ''"
         >
-            Parts without lyrics:
+            Parts without lyrics
         </h2>
         <p v-for="part, idx in partsWithoutLyrics">
             {{ part.start + "s - " + part.end + "s" }}
@@ -290,7 +292,7 @@
         </p>
 
         <label class="flex flex-col items-center">
-            <h2 class="font-bold text-xl mt-4 mb-2">Background hue-rotate:</h2>
+            <h2 class="font-bold text-xl mt-4 mb-2">Background hue-rotate</h2>
             <p class="font-bold">{{ hueRotate }}° {{ backgroundImage == defaultBackgroundImage && hueRotate == theme.backgroundHueRotate ? "(theme default)" : "" }}</p>
             <div class="flex gap-2 mt-1 mb-1">
                 <input 
@@ -305,10 +307,11 @@
 
         <label 
             v-if="backgroundImage == defaultBackgroundImage && hueRotate == theme.backgroundHueRotate"
-            class="cursor-pointer"
+            :class="!inludeTheHueRotate ? 'cursor-pointer text-neutral-200 duration-200' : 'cursor-pointer duration-200'"
         >
             <input 
                 class="mr-1 cursor-pointer disabled:cursor-not-allowed"
+                :style="{ 'filter': !inludeTheHueRotate ? 'brightness(0.85)' : '' }"
                 type="checkbox"
                 v-model="inludeTheHueRotate"
             >
@@ -339,7 +342,11 @@
                     mapper: 'Automap' + (lyricsType == 'lrc' && lyrics.match(/(?<=\[by:).*(?=\])/) ? ' (.lrc by ' + lyrics.match(/(?<=\[by:).*(?=\])/)[0].trim() + ')' : ''),
                     additionalInfo: '',
                     song: song,
-                    backgroundImage: backgroundImage == defaultBackgroundImage ? 'default' : backgroundImage,
+                    backgroundImage: backgroundImage == defaultBackgroundImage && !includeTheBackground ? 
+                                        'default' 
+                                        : backgroundImage == defaultBackground ? 
+                                            'forcedDefault'
+                                            : backgroundImage,
                     backgroundFilters: backgroundImage == defaultBackgroundImage && hueRotate == theme.backgroundHueRotate && !preventHueRotainludeTheHueRotateteOverriding ? [] : [{ start: 0, hue: hueRotate, brightness: 100, transitionDuration: 0}],
                     lyrics: calculateLyrics(),
                     partsWithoutLyrics: lyricsType == 'text' ? 

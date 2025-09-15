@@ -1,11 +1,12 @@
 <script setup>
-    import { ref, computed, onUnmounted, watchEffect } from "vue";
+    import { ref, computed, onUnmounted, watch, watchEffect } from "vue";
     import { useRouter } from "vue-router";
     import config from "@/configs/config.json";
     import PinkHeader from '@/components/PinkHeader.vue';
     import SpeedSelector from "./SpeedSelector.vue";
     import LyricsCustomization from './LyricsCustomization.vue';
     import MenuPanel from './MenuPanel.vue';
+    import Switch from './Switch.vue';
     
     const props = defineProps([
         "data",
@@ -38,9 +39,7 @@
 
     const speed = ref(props.pausedVariant ? 
                         props.data.speed
-                        : localStorage.getItem("defaultSpeed") ? 
-                            localStorage.getItem("defaultSpeed") 
-                            : 1);
+                        : localStorage.getItem("defaultSpeed") ?? 1);
     
     const lyricsSettingList = ["capitalization", "accentLetters", "specialCharacters"];
     const lyricsSettings = ref(props.pausedVariant ? JSON.parse(JSON.stringify(props.data.lyricsSettings)) : {});
@@ -52,6 +51,7 @@
 
     const highscore = ref(0);
     const continueWithSettings = ref(localStorage.getItem("continueWithRestartSettings") || props.continuedWithSettings);
+    const saveHighscores = ref(localStorage.getItem("saveHighscores"));
 
     let parsedAdditionalInfo = "";
     let i = 0;
@@ -82,6 +82,13 @@
 
     const theme = localStorage.getItem("theme") ? JSON.parse(localStorage.getItem("theme")) : config.defaultTheme;
     const mobile = navigator.userAgent.match(/Android|iPhone|iPad/);
+    const visibleMoreInfo = ref("");
+
+    watch(visibleMoreInfo, () => {
+        if (visibleMoreInfo.value) {
+            document.activeElement.blur();
+        }
+    });
 
     watchEffect(() => {
         highscore.value = localStorage.getItem(props.data.id + "-" + speed.value + "-" + startTime.value + "-" + skipLyricless.value + "-" + lyricsSettingList.map((e) => lyricsSettings.value[e] ? '1' : '0').join("") + (wordLengthLimit.value ? "-wll" + wordLengthLimit.value : "") + (autospace.value ? "-as" : "") + (freeVerseChanging.value ? "-fvc" : ""));
@@ -101,6 +108,10 @@
         0);
     });
 
+    const restartSettingsChanged = computed(() => {
+        return props.pausedVariant && (props.data.speed != speed.value || props.data.skipLyricless != skipLyricless.value || JSON.stringify(Object.values(props.data.lyricsSettings).map((e) => e ? true : false)) != JSON.stringify(Object.values(lyricsSettings.value).map((e) => e ? true : false)) || props.data.wordLengthLimit != wordLengthLimit.value || props.data.autospace != autospace.value || props.data.freeVerseChanging != freeVerseChanging.value);
+    });
+
     onUnmounted(() => {
         removeEventListener("keydown", onKeyDown);
         removeEventListener("keyup", onKeyUp);
@@ -109,11 +120,18 @@
     function onKeyDown(e) {
         if (e.key == "Enter") {
             enterHeld = true;
+
+            if (visibleMoreInfo.value) {
+                visibleMoreInfo.value = "";
+                return;
+            }
         } else if (e.key == "Control") {
             controlHeld = true;
         } else if (e.key == "Escape") {
-            if (props.pausedVariant) {
-                emit("continue", continueWithSettings.value && (props.data.speed != speed.value || props.data.skipLyricless != skipLyricless.value || JSON.stringify(props.data.lyricsSettings) != JSON.stringify(lyricsSettings.value) || props.data.wordLengthLimit != wordLengthLimit.value || props.data.autospace != autospace.value || props.data.freeVerseChanging != freeVerseChanging.value) ? buildNewData(false) : {});
+            if (visibleMoreInfo.value) {
+                visibleMoreInfo.value = "";
+            } else if (props.pausedVariant) {
+                emit("continue", continueWithSettings.value && restartSettingsChanged ? buildNewData(false) : {});
             } else {
                 emit("cancel");
             }
@@ -121,7 +139,7 @@
 
         if (controlHeld && enterHeld) {
             if (props.pausedVariant) {
-                emit("continue", continueWithSettings.value && (props.data.speed != speed.value || props.data.skipLyricless != skipLyricless.value || JSON.stringify(props.data.lyricsSettings) != JSON.stringify(lyricsSettings.value) || props.data.wordLengthLimit != wordLengthLimit.value || props.data.autospace != autospace.value || props.data.freeVerseChanging != freeVerseChanging.value) ? buildNewData(false) : {});
+                emit("continue", continueWithSettings.value && restartSettingsChanged ? buildNewData(false) : {});
             } else {
                 emit("setData", buildNewData(true));
                 router.push("/play");
@@ -149,11 +167,13 @@
                     autospace: autospace.value,
                     freeVerseChanging: freeVerseChanging.value,
                     backgroundFilters: !props.data.backgroundFilters.length && overrideBackgroundFilters && props.data.backgroundImage == "default" ? [{ start: 0, hue: theme.backgroundHueRotate, brightness: 100, transitionDuration: 0}] : props.data.backgroundFilters,
-                    backgroundImage: props.data.backgroundImage == "default" ? 
-                                        (theme.backgroundImage == "default" ? 
-                                            props.defaultBackground
-                                            : theme.backgroundImage)
-                                        : props.data.backgroundImage };
+                    backgroundImage: props.data.backgroundImage == "forcedDefault" ? 
+                                        props.defaultBackground
+                                        : props.data.backgroundImage == "default" ? 
+                                            (theme.backgroundImage == "default" ? 
+                                                props.defaultBackground
+                                                : theme.backgroundImage)
+                                            : props.data.backgroundImage };
     }
 
     function redirectAndSetData(link, data) {
@@ -182,7 +202,22 @@
         <div class="flex gap-6">
             <p>Mapped by: {{ data.mapper ? data.mapper : "unknown" }}</p>
             <p>Length: {{ mapLength ? (mapLength >= 60 ? Math.floor(mapLength / 60) + "m " : "") + (mapLength % 60 != 0 ? Math.round(mapLength % 60) + "s" : "") : "0s" }}</p>
-            <p>WPM: {{ Math.round(data.lyrics.reduce((sum, e) => sum + e.length, 0) / (mapLength - timeWithoutLyrics) * 60) }}</p>
+            <p>WPM: {{ 
+                Math.round(60 * data.lyrics.reduce((sum, e) => sum + e.length, 0) / data.lyrics.reduce((sum, e, idx) => sum + 
+                    (e.length == 1 ? 
+                        idx == 0 && e[0].delay < 3.5 ?
+                            e[0].delay
+                            : idx != 0 && e[0].delay - data.lyrics[idx - 1][data.lyrics[idx - 1].length - 1].delay < 3.5 ?
+                                e[0].delay - data.lyrics[idx - 1][data.lyrics[idx - 1].length - 1].delay
+                                : 3.5
+                        : e[e.length - 1].delay - e[0].delay + 
+                            (idx != 0 && e[0].delay - data.lyrics[idx - 1][data.lyrics[idx - 1].length - 1].delay < (e[e.length - 1].delay - e[0].delay) / e.length * 1.5 && e[0].delay - data.lyrics[idx - 1][data.lyrics[idx - 1].length - 1].delay < 3.5 ?
+                                e[0].delay - data.lyrics[idx - 1][data.lyrics[idx - 1].length - 1].delay
+                                : (e[e.length - 1].delay - e[0].delay) / e.length * 1.5 < 3.5 ?
+                                    (e[e.length - 1].delay - e[0].delay) / e.length * 1.5
+                                    : 3.5)
+                ), 0)) }}
+            </p>
         </div>
 
         <div 
@@ -199,7 +234,7 @@
 
             <button
                 class="button h-fit"
-                @click="mobile ? $emit('showMobileWarning', buildNewData(false)) : redirectAndSetData('/editor', buildNewData(false))"
+                @click="mobile ? $emit('showMobileWarning', buildNewData(false)) : redirectAndSetData('/editor', { ...buildNewData(false), defaultBackground: props.data.backgroundImage.match(/default|forcedDefault/) ?? '' })"
             >
                 Edit
             </button>
@@ -241,7 +276,7 @@
             <button
                 to="/play"
                 class="button border-[var(--themableWhite)] not-hover:border-pink-500 text-pink-500 bg-[var(--themableWhite)] px-8 text-xl"
-                @click="$emit('continue', continueWithSettings && (props.data.speed != speed || props.data.skipLyricless != skipLyricless || JSON.stringify(props.data.lyricsSettings) != JSON.stringify(lyricsSettings) || props.data.wordLengthLimit != wordLengthLimit || props.data.autospace != autospace || props.data.freeVerseChanging != freeVerseChanging) ? buildNewData(false) : {})"
+                @click="$emit('continue', continueWithSettings && restartSettingsChanged ? buildNewData(false) : {})"
             >
                 Continue
             </button>
@@ -259,7 +294,7 @@
             class="mt-3 text-center"
         >You've continued with restart settings, highscores are disabled.</p>
         <label 
-            v-else-if="pausedVariant && (props.data.speed != speed || props.data.skipLyricless != skipLyricless || JSON.stringify(Object.values(props.data.lyricsSettings).map((e) => e ? true : false)) != JSON.stringify(Object.values(lyricsSettings).map((e) => e ? true : false)) || props.data.wordLengthLimit != wordLengthLimit || props.data.autospace != autospace || props.data.freeVerseChanging != freeVerseChanging)"
+            v-else-if="pausedVariant && restartSettingsChanged"
             class="cursor-pointer mt-3 text-center"
         >
             <input 
@@ -271,29 +306,44 @@
         </label>
 
         <p
-            v-if="highscore && !props.continuedWithSettings"
+            v-if="saveHighscores && highscore && !props.continuedWithSettings && !restartSettingsChanged"
             class="mt-3"
         >
             Highscore on those settings: 
             <b>{{ highscore }}%</b>
         </p>
+        <p 
+            v-else-if="saveHighscores && !props.continuedWithSettings && !restartSettingsChanged"
+            class="mt-3"
+        >
+            No highscore on those settings yet.
+        </p>
+
+        <p 
+            v-if="data.forceskip"
+            :class="saveHighscores || props.continuedWithSettings || restartSettingsChanged ? 'mt-1' : 'mt-3'"
+        >This map skips {{ data.partsWithoutLyrics.length == 1 ? 'a part' : 'parts' }} of the song. Time-wise, {{ (timeWithoutLyrics >= 60 ? Math.floor(timeWithoutLyrics / 60) + "m " : "") + (timeWithoutLyrics % 60 != 0 ? Math.round(timeWithoutLyrics % 60) + "s" : "") }} of it.</p>
 
         <p
             v-if="parsedAdditionalInfo"
-            :class="highscore || props.continuedWithSettings ? 'text-center mt-1 whitespace-pre-wrap' : 'text-center mt-3 whitespace-pre-wrap'" 
+            :class="saveHighscores || props.continuedWithSettings || restartSettingsChanged || data.forceskip ? 'text-center mt-1 whitespace-pre-wrap' : 'text-center mt-3 whitespace-pre-wrap'" 
             v-html="parsedAdditionalInfo"
         ></p>
 
-        <h1 :class="parsedAdditionalInfo ? 'text-2xl font-bold mt-3' : 'text-2xl font-bold mt-5'">{{ pausedVariant ? "Restart settings: " : "Settings:"}}</h1>
+        <div class="flex flex-row items-center mt-3 gap-3 max-w-full">
+            <hr class="w-25 border-t-3">
+            <h1 class="font-bold text-2xl">{{ pausedVariant ? "Restart settings " : "Settings" }}</h1>
+            <hr class="w-25 border-t-3">
+        </div>
 
         <SpeedSelector
             :defaultSpeed="speed"
             @changed="(newSpeed) => speed = newSpeed"
         />
 
-        <div class="flex justify-center flex-wrap max-w-130 text-center">
-            <label class="w-65">
-                <h2 class="font-bold text-xl mt-4 mb-2">Start time:</h2>
+        <div class="flex justify-center flex-wrap max-w-160 text-center">
+            <label :class="(!timeWithoutLyrics || data.forceskip) && data.lyrics.some((e) => e.some((e2) => e2.word.toLowerCase().replace(/ł/g, 'l').replace(/Ł/g, 'L').replace(/Ø/g, 'O').replace(/ø/g, 'o').normalize('NFKD').replace(/\p{Diacritic}/gu, '').replace(/\P{Letter}/gu, '') != e2.word)) ? 'w-80.25' : 'w-80'">
+                <h2 class="font-bold text-xl mt-4 mb-2">Start time</h2>
                 <input 
                     class="input min-w-27.5"
                     type="number"
@@ -303,34 +353,29 @@
                     @change="(e) => startTime > Math.round((mapLength - 0.1) * 100) / 100 ? startTime = (Math.round((mapLength - 0.1) * 100) / 100 > 0 ? Math.round((mapLength - 0.1) * 100) / 100 : 0) : e.target.value < 0 || isNaN(parseFloat(e.target.value)) ? startTime = 0 : {}"
                 >
             </label>
-                
+
             <div 
                 v-if="timeWithoutLyrics && !data.forceskip"
-                class="w-65"
+                class="w-80 flex justify-center"
             >
-                <label class="flex flex-col items-center">
-                    <h2 class="font-bold text-xl mt-4 mb-2">Skip parts without lyrics:</h2>
-                    <input 
-                        class="cursor-pointer"
-                        type="checkbox"
-                        v-model="skipLyricless"
-                    >
-                </label>
-                <p class="mt-2">
-                    This map has {{ (timeWithoutLyrics >= 60 ? Math.floor(timeWithoutLyrics / 60) + "m " : "") + (timeWithoutLyrics % 60 != 0 ? Math.round(timeWithoutLyrics % 60) + "s" : "") }} without lyrics.
-                </p>  
+                <Switch
+                    :initialValue="skipLyricless"
+                    labelText="Skip parts without lyrics"
+                    :labelBottomText="'this map has ' + (timeWithoutLyrics >= 60 ? Math.floor(timeWithoutLyrics / 60) + 'm ' : '') + (timeWithoutLyrics % 60 != 0 ? Math.round(timeWithoutLyrics % 60) + 's' : '') + ' without lyrics'"
+                    @valueChanged="(newValue) => skipLyricless = newValue"
+                />
             </div>
                 
             <LyricsCustomization 
-                class="w-65"
+                class="w-80"
                 variant="mapCustomization"
                 :default="lyricsSettings"
                 :lyrics="data.lyrics"
                 @settingChanged="(name, value) => lyricsSettings[name] = value"
             />
 
-            <label class="w-65">
-                <h2 class="font-bold text-xl mt-4">Word length limit:</h2>
+            <label class="w-80">
+                <h2 class="font-bold text-xl mt-4">Word length limit</h2>
                 <p class="mb-2">(0 means no limit)</p>
 
                 <input 
@@ -343,30 +388,42 @@
                 >
             </label>
         </div>
-        
-        <label :class="data.forceskip ? 'flex flex-col items-center' : 'flex flex-col items-center mb-1'">
-            <h2 class="font-bold text-xl mt-4">Autospace:</h2>
-            <p class="mb-2 max-w-125 text-center">(automatically goes to the next word when you type a word correctly or the current word passes. Whether this is easier is a preference)</p>
-            <input 
-                class="cursor-pointer"
-                type="checkbox"
-                v-model="autospace"
-            >
-        </label>
 
-        <label :class="data.forceskip ? 'flex flex-col items-center' : 'flex flex-col items-center mb-1'">
-            <h2 class="font-bold text-xl mt-4">Free verse changing:</h2>
-            <p class="mb-2 max-w-125 text-center">(removes verse timestamps, letting you change and type them anytime except during marked lyricless parts. Scoring is unchanged)</p>
-            <input 
-                class="cursor-pointer"
-                type="checkbox"
-                v-model="freeVerseChanging"
-            >
-        </label>
+        <div class="flex justify-center flex-wrap max-w-160 text-center">
+            <div class="w-80 flex justify-center">
+                <Switch
+                    :initialValue="autospace"
+                    labelText="Autospace"
+                    :moreInfoButton="true"
+                    @valueChanged="(newValue) => autospace = newValue"
+                    @moreInfoClicked="visibleMoreInfo = 'Autospace makes it so you automatically go to the next word when you type a word correctly or the current word passes. Whether this is easier is a preference.'"
+                />
+            </div>
 
-        <p 
-            v-if="data.forceskip"
-            class="mt-4"
-        >This map skips {{ data.partsWithoutLyrics.length == 1 ? 'a part' : 'parts' }} of the song. Time-wise, {{ (timeWithoutLyrics >= 60 ? Math.floor(timeWithoutLyrics / 60) + "m " : "") + (timeWithoutLyrics % 60 != 0 ? Math.round(timeWithoutLyrics % 60) + "s" : "") }} of it.</p>
+            <div class="w-80 flex justify-center">
+                <Switch
+                    :initialValue="freeVerseChanging"
+                    labelText="Free verse changing"
+                    :moreInfoButton="true"
+                    @valueChanged="(newValue) => freeVerseChanging = newValue"
+                    @moreInfoClicked="visibleMoreInfo = 'Free verse changing removes verse timestamps, letting you change and type them anytime except during marked lyricless parts. Scoring is unchanged.'"
+                />
+            </div>
+        </div>
+    </MenuPanel>
+
+    <MenuPanel 
+        v-if="visibleMoreInfo"
+        :higherZ="true"
+    >
+        <PinkHeader text="More information" />
+        <p class="z-15 max-w-125">
+            {{ visibleMoreInfo }}
+        </p>
+    
+        <button
+            class="button mt-2.5"
+            @click="visibleMoreInfo = ''"
+        >Okay</button>
     </MenuPanel>
 </template>

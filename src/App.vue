@@ -177,7 +177,7 @@
         @click="enterFullscreen()"
     >
         <img 
-            :class="reduceTransparency ? 'w-5 brightness-63 group-hover:brightness-100' : 'w-5 opacity-50 group-hover:opacity-100'"
+            :class="reduceTransparency ? 'w-5 brightness-63 group-hover:brightness-100 duration-200' : 'w-5 opacity-50 group-hover:opacity-100 duration-200'"
             src="@/assets/fullscreen.png" 
             alt="Fullscreen icon"
         >

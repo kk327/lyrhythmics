@@ -1,5 +1,5 @@
 <script setup>
-    import { ref, watch } from 'vue';
+    import { ref, watch, onUnmounted } from 'vue';
 
     const props = defineProps([
         "defaultSpeed",
@@ -11,23 +11,45 @@
     ]);
 
     const speed = ref(props.defaultSpeed);
+    const thinScreen = ref(!window.matchMedia("(min-width: 40rem)").matches);
+
+    onUnmounted(() => {
+        removeEventListener("resize", onResize);
+    });
 
     watch(speed, () => {
         emit("changed", speed.value);
-    })
+    });
+
+    function onResize() {
+        thinScreen.value = !window.matchMedia("(min-width: 40rem)").matches;
+    }
+    addEventListener("resize", onResize);
 </script>
 
 <template>
-    <h2 class="font-bold text-xl mt-4 mb-2">Speed:</h2>
-    <div class="cursor-hover bg-black/[var(--bg-40)] gap-1 flex rounded-xl backdrop-blur-md flex-wrap justify-center">
+    <h2 class="font-bold text-xl mt-4 mb-2">Speed</h2>
+    <div class="w-170 max-w-[calc(100vw-12px)] sm:max-w-[calc(100vw-64px)] flex flex-row justify-between rounded-xl">
         <button
-            v-for="speedValue of [0.25, 0.5, 0.625, 0.75, 0.875, 1, 1.125, 1.25, 1.375, 1.5, 1.75]"
-            class="cursor-pointer px-3 py-1 rounded-xl border-2 border-white/0 font-bold hover:brightness-125 hover:border-white duration-200"
-            :style="{ color: speed == speedValue ? 'color-mix(in hsl, var(--color-pink-300), var(--color-pink-500))' : 'white'}"
-            :tabindex="tabindex"
+            v-for="speedValue of thinScreen ? Array(7).keys().map((e) => e * 0.25 + 0.25) : Array(13).keys().map((e) => e * 0.125 + 0.25)"
+            :class="speedValue % 0.25 == 0 ? 'w-10 font-bold cursor-pointer hover:text-pink-300 duration-100 flex flex-col items-center' : 'w-10 text-neutral-300 cursor-pointer hover:text-pink-300 duration-100 flex flex-col items-center'"
+            :style="{ color: speed == speedValue ? 'color-mix(in hsl, var(--color-pink-300) 33%, var(--color-pink-500) 66%)' : '' }"
             @click="speed = speedValue"
-        >{{ speedValue }}</button>
+            :tabindex="tabindex"
+        >
+            {{ speedValue }}
+        </button>
     </div>
+    <input 
+        class="w-165 max-w-[calc(100vw-32px)] sm:max-w-[calc(100vw-84px)]"
+        type="range"
+        v-model="speed"
+        min="0.25"
+        max="1.75"
+        step="0.125"
+        :tabindex="tabindex"
+    >
+
     <label>
         Custom:
         <input 

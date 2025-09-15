@@ -42,21 +42,21 @@
         <h2
             :class="variant == 'editor' && !settingList.some((e) => e.allowed) ? 'font-bold text-xl mt-4 mb-2 text-neutral-400 cursor-not-allowed' : 'font-bold text-xl mt-4 mb-2'"
             :title="variant == 'editor' && !settingList.some((e) => e.allowed) ? 'No lyrics contain any of those.' : ''"
-        >Lyrics customization:</h2>
+        >Lyrics customization</h2>
 
         <label 
             v-for="setting of settingList"
-            class="cursor-pointer has-disabled:cursor-not-allowed has-disabled:text-neutral-400"
+            :class="!settings[setting.codeName] ? 'cursor-pointer has-disabled:cursor-not-allowed has-disabled:text-neutral-400 not-has-disabled:text-neutral-200 duration-200' : 'cursor-pointer has-disabled:cursor-not-allowed has-disabled:text-neutral-400 duration-200'"
             :title="variant == 'editor' && !setting.allowed ? 'No lyrics contain ' + setting.displayName.toLowerCase() + '.' : ''"
         >
             <div v-if="variant != 'mapCustomization' || setting.allowed">
                 <input 
-                    class="mr-1 cursor-pointer disabled:cursor-not-allowed"
+                    :class="!settings[setting.codeName] ? 'mr-1 cursor-pointer disabled:cursor-not-allowed not-disabled:brightness-[0.85]' : 'mr-1 cursor-pointer disabled:cursor-not-allowed'"
                     type="checkbox"
                     v-model="settings[setting.codeName]"
                     :disabled="variant == 'editor' && !setting.allowed"
                     :tabindex="tabindex"
-                    @change="(e) => $emit('settingChanged', setting.codeName, settings[setting.codeName])"
+                    @change="$emit('settingChanged', setting.codeName, settings[setting.codeName])"
                 >
                 {{ setting.displayName }}
             </div>

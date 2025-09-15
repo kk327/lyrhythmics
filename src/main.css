@@ -17,6 +17,10 @@
         @apply accent-pink-500;
     }
 
+    *:focus-visible:not[class="playingInput"] {
+        @apply outline-2 outline-pink-500 shadow-[0_0_0px_3px_white];
+    }
+
     td, th {
         @apply px-1.5 py-0.5 border-neutral-400 border-1 border-dotted;
     }

@@ -9,6 +9,8 @@
     import LyricsCustomization from '@/components/LyricsCustomization.vue';
     import SongAndBackgroundInputs from '@/components/SongAndBackgroundInputs.vue';
     import MenuPanel from '@/components/MenuPanel.vue';
+    import PinkHeader from "@/components/PinkHeader.vue";
+    import Switch from "@/components/Switch.vue";
 
     const props = defineProps([
         "data",
@@ -21,7 +23,7 @@
 
     const router = useRouter();
 
-    const targetFPS = localStorage.getItem("targetFPS") ? localStorage.getItem("targetFPS") : 60;
+    const targetFPS = localStorage.getItem("targetFPS") ?? 60;
     const nonDecimalCurrentTime = localStorage.getItem("nonDecimalCurrentTime");
     const disableBackgroundFilters = localStorage.getItem("disableBackgroundFilters");
 
@@ -40,22 +42,20 @@
     const editedVerse = ref(-1);
     const editedVerseData = ref([]);
 
-    const lyrics = ref(props.data ? props.data.lyrics : []);
+    const lyrics = ref(props.data?.lyrics ?? []);
 
     const speed = ref(props.data ? 
                         props.data.speed 
-                        : localStorage.getItem("defaultSpeed") ?
-                            localStorage.getItem("defaultSpeed")
-                            : 1);
+                        : localStorage.getItem("defaultSpeed") ?? 1);
     
     const disableVerseBackgroundBlur = ref(localStorage.getItem("disableVerseBackgroundBlur"));
     const skipLyricless = ref(props.data && props.data.skipLyricless && props.data.partsWithoutLyrics.length ? true : false);
-    const wordLengthLimit = ref(props.data ? props.data.wordLengthLimit : 0);
+    const wordLengthLimit = ref(props.data?.wordLengthLimit ?? 0);
     const autospace = ref((localStorage.getItem("autospaceByDefault") && !props.data) || (props.data && props.data.autospace));
     const freeVerseChanging = ref((localStorage.getItem("freeVerseChangingByDefault") && !props.data) || (props.data && props.data.freeVerseChanging));
 
     const lyricsSettingList = ["capitalization", "accentLetters", "specialCharacters"];
-    const lyricsSettings = ref(props.data ? props.data.lyricsSettings : {});
+    const lyricsSettings = ref(props.data?.lyricsSettings ?? {});
     if (!props.data) {
         for (let setting of lyricsSettingList) {
             lyricsSettings.value[setting] = localStorage.getItem(setting);
@@ -95,14 +95,15 @@
     const theme = localStorage.getItem("theme") ? JSON.parse(localStorage.getItem("theme")) : config.defaultTheme;
     const defaultBackgroundImage = theme.backgroundImage == "default" ? props.defaultBackground : theme.backgroundImage;
     const backgroundImage = ref(props.data ? props.data.backgroundImage : defaultBackgroundImage);
+    const includeTheBackground = ref(props.data?.defaultBackground == "forcedDefault" || (props.data?.backgroundImage == defaultBackgroundImage && props.data?.defaultBackground != "default"));
     
-    const backgroundFilters = ref(props.data ? props.data.backgroundFilters : []);
-    const partsWithoutLyrics = ref(props.data ? props.data.partsWithoutLyrics : []);
-    const forceskip = ref(props.data ? props.data.forceskip : false);
+    const backgroundFilters = ref(props.data?.backgroundFilters ?? []);
+    const partsWithoutLyrics = ref(props.data?.partsWithoutLyrics ?? []);
+    const forceskip = ref(props.data?.forceskip ?? false);
 
-    const name = ref(props.data ? props.data.name : "");
-    const mapper = ref(props.data ? props.data.mapper : "");
-    const additionalInfo = ref(props.data ? props.data.additionalInfo : "");
+    const name = ref(props.data?.name ?? "");
+    const mapper = ref(props.data?.mapper ?? "");
+    const additionalInfo = ref(props.data?.additionalInfo ?? "");
 
     document.body.style.overflowY = "auto";
     document.title = "Lyrhythmics - " + (name.value ? name.value : "Unnamed map");
@@ -648,7 +649,11 @@
             mapper: mapper.value,
             additionalInfo: additionalInfo.value,
             song: song.value,
-            backgroundImage: backgroundImage.value == defaultBackgroundImage ? "default" : backgroundImage.value,
+            backgroundImage: backgroundImage.value == defaultBackgroundImage && !includeTheBackground.value ?
+                                "default" 
+                                : backgroundImage.value == props.defaultBackground ?
+                                    'forcedDefault'
+                                    : backgroundImage.value,
             backgroundFilters: backgroundFilters.value,
             lyrics: lyrics.value,
             partsWithoutLyrics: partsWithoutLyrics.value,
@@ -757,8 +762,11 @@
             v-if="quitWarningVisible"
             class="flex flex-col items-center"
         >
-            <h2 class="font-bold text-lg">Are you sure you want to quit?</h2>
-            <p>Make sure to export the map first if you want to have it saved.</p>
+            <PinkHeader text="Warning!" />
+            <p>
+                Are you sure you want to quit?
+                <br>Make sure to export the map first if you want to have it saved.
+            </p>
 
             <div class="flex gap-3 mt-2.5">
                 <button
@@ -777,8 +785,11 @@
             v-else-if="removedVerse != -1"
             class="flex flex-col items-center"
         >
-            <p class="font-bold text-lg">Are you sure you want to remove this verse?</p>
-            <p>{{ lyrics[removedVerse].map((e) => e.word).join(" ") }}</p>
+            <PinkHeader text="Warning!" />
+            <p>
+                Are you sure you want to remove this verse?
+                <br>"{{ lyrics[removedVerse].map((e) => e.word).join(" ") }}"
+            </p>
 
             <div class="flex gap-3 mt-2.5">
                 <button
@@ -797,7 +808,11 @@
             v-else
             class="flex flex-col items-center"
         >
-            <p class="font-bold text-lg mb-2">Input the edited verse.</p>
+            <PinkHeader
+                class="mb-4"
+                text="Verse editing"
+            />
+
             <div class="flex gap-2 flex-wrap justify-center">
                 <button
                     class="button"
@@ -950,7 +965,10 @@
     >
         <div class="flex bg-black/50 h-dvh w-full sm:w-auto sm:max-w-[calc(100%-20px)] backdrop-blur-2xl sm:backdrop-blur-none">
             <div class="bg-neutral-900/[var(--bg-40)]">
-                <div class="flex flex-col items-center h-full w-full px-2 sm:px-6 pb-2 sm:pb-3 pt-16 2xl:pt-3 sm:backdrop-blur-2xl overflow-y-auto">
+                <div 
+                    class="flex flex-col items-center h-full w-full px-2 sm:px-6 pb-2 sm:pb-3 pt-16 2xl:pt-3 sm:backdrop-blur-2xl overflow-y-auto"
+                    :tabindex="tabindex"
+                >
                     <div class="flex flex-row items-center mt-2 gap-3 max-w-full">
                         <hr class="w-25 border-t-3">
                         <h1 class="font-bold text-2xl">Map settings</h1>
@@ -962,12 +980,14 @@
                         :defaultBackground="defaultBackground"
                         :defaultBackgroundImage="backgroundImage"
                         :defaultSong="song"
+                        :defaultIncludeTheBackground="includeTheBackground"
                         :minDuration="Math.max(partsWithoutLyrics.length ? partsWithoutLyrics[partsWithoutLyrics.length - 1].end : 0, backgroundFilters.length ? backgroundFilters[backgroundFilters.length - 1].start : 0)"
                         @backgroundImageSet="(newBackgroundImage) => backgroundImage = newBackgroundImage"
                         @songLoaded="(newSong, newAudio, newSongDuration) => onSongLoad(newSong, newAudio, newSongDuration)"
+                        @includeTheBackgroundChanged="(newValue) => includeTheBackground = newValue"
                     />
                 
-                    <h2 class="font-bold text-xl mt-4 mb-2">Background filters:</h2>
+                    <h2 class="font-bold text-xl mt-4 mb-2">Background filters</h2>
 
                     <p>
                         Hue-rotate for testing: 
@@ -1014,11 +1034,17 @@
                     <p v-for="filterData, idx in backgroundFilters">
                         {{ Math.round(filterData.start * 100) / 100 + "s | " + filterData.hue + "° | " + filterData.brightness + "% | " + Math.round(filterData.transitionDuration * 100) / 100 + (filterData.transitionDuration ? "s (" + Math.round((filterData.start - filterData.transitionDuration) * 100) / 100 + "s - " + Math.round(filterData.start * 100) / 100 + "s)" : "s (instant)") }}
                         <button
-                            class="button p-0 w-8 my-0.75"
+                            class="button p-1 my-0.75"
                             title="Remove."
                             :tabindex="tabindex"
                             @click="backgroundFilters = backgroundFilters.filter((e, idx2) => idx != idx2)"
-                        >X</button>
+                        >
+                            <img 
+                                class="w-3"
+                                src="@/assets/cross.png" 
+                                alt="Remove icon"
+                            >
+                        </button>
                     </p>
                     <InputsAdd 
                         :labels="['Start time', 'Hue-rotate', 'Brightness', 'Transition duration']"
@@ -1032,7 +1058,7 @@
                 
                     <p class="mt-2">The transition takes place before the start time.</p>
                 
-                    <h2 class="font-bold text-xl mt-4 mb-2">Metadata:</h2>
+                    <h2 class="font-bold text-xl mt-4 mb-2">Metadata</h2>
                     <label>
                         Name:
                         <input 
@@ -1066,16 +1092,22 @@
                         :class="!songDuration ? 'font-bold text-xl mt-4 mb-2 text-neutral-400 cursor-not-allowed' : 'font-bold text-xl mt-4 mb-2'"
                         :title="!songDuration ? 'Add a song first.' : ''"
                     >
-                        Parts without lyrics:
+                        Parts without lyrics
                     </h2>
                     <p v-for="part, idx in partsWithoutLyrics">
                         {{ Math.round(part.start * 100) / 100 + "s - " + Math.round(part.end * 100) / 100 + "s" }}
                         <button
-                            class="button p-0 w-8 my-0.75"
+                            class="button p-1 my-0.75"
                             title="Remove."
                             :tabindex="tabindex"
                             @click="partsWithoutLyrics = partsWithoutLyrics.filter((e, idx2) => idx != idx2)"
-                        >X</button>
+                        >
+                            <img 
+                                class="w-3"
+                                src="@/assets/cross.png" 
+                                alt="Remove icon"
+                            >
+                        </button>
                     </p>
                     <InputsAdd 
                         :labels="['Start time', 'End time']"
@@ -1086,22 +1118,17 @@
                         :tabindex="tabindex"
                         @add="(start, end) => partsWithoutLyrics = [ ...partsWithoutLyrics, { start: start, end: end }].sort((a,b) => a.start - b.start)"
                     />
-                
-                    <label 
-                        class="flex flex-col items-center has-disabled:text-neutral-400 has-disabled:cursor-not-allowed"
+
+                    <Switch
                         :title="!partsWithoutLyrics.length ? 'Add a part without lyrics first.' : ''"
-                    >
-                        <h2 class="font-bold text-xl mt-4 mb-2">Force-skip parts without lyrics:</h2>
-                        <input 
-                            class="cursor-pointer disabled:cursor-not-allowed"
-                            :disabled="!partsWithoutLyrics.length"
-                            :tabindex="tabindex"
-                            type="checkbox"
-                            v-model="forceskip"
-                        >
-                    </label>
+                        :initialValue="forceskip"
+                        :disabled="!partsWithoutLyrics.length"
+                        :inputTabindex="tabindex"
+                        labelText="Force-skip parts without lyrics"
+                        @valueChanged="(newValue) => forceskip = newValue"
+                    />
                 
-                    <div class="flex flex-row items-center mt-8 gap-3 max-w-full">
+                    <div class="flex flex-row items-center mt-6 gap-3 max-w-full">
                         <hr class="w-25 border-t-3">
                         <h1 class="font-bold text-2xl">Editor/playtesting settings</h1>
                         <hr class="w-25 border-t-3">
@@ -1112,24 +1139,19 @@
                         :tabindex="tabindex"
                         @changed="(newSpeed) => speed = newSpeed"
                     />
-                
-                    <label 
-                        class="flex flex-col items-center has-disabled:text-neutral-400 has-disabled:cursor-not-allowed"
+
+                    <Switch
                         :title="forceskip ?
                                     'Force-skip is enabled instead.' 
                                     : !partsWithoutLyrics.length ?
                                         'Add a part without lyrics first.'
                                         : ''"
-                    >
-                        <h2 class="font-bold text-xl mt-4 mb-2">Skip parts without lyrics:</h2>
-                        <input 
-                            class="cursor-pointer disabled:cursor-not-allowed"
-                            :disabled="forceskip || !partsWithoutLyrics.length"
-                            :tabindex="tabindex"
-                            type="checkbox"
-                            v-model="skipLyricless"
-                        >
-                    </label>
+                        :initialValue="skipLyricless"
+                        :disabled="forceskip || !partsWithoutLyrics.length"
+                        :inputTabindex="tabindex"
+                        labelText="Skip parts without lyrics"
+                        @valueChanged="(newValue) => skipLyricless = newValue"
+                    />
                 
                     <LyricsCustomization 
                         variant="editor"
@@ -1146,39 +1168,36 @@
                         class="has-disabled:text-neutral-400 has-disabled:cursor-not-allowed"
                         :title="lyrics.length ? '' : 'Add lyrics first.'"
                     >
-                        <h2 class="font-bold text-xl mt-4">Word length limit:</h2>
+                        <h2 class="font-bold text-xl mt-4">Word length limit</h2>
                         <p class="mb-2">(0 means no limit)</p>
                         <input 
                             class="input w-27.5"
                             type="number"
                             min="0"
                             :max="Math.max( ...lyrics.map(e => Math.max( ...e.map(e2 => e2.word.length ))) ) - 1"
+                            :tabindex="tabindex"
                             :disabled="!lyrics.length"
                             v-model="wordLengthLimit"
                             @change="(e) => wordLengthLimit > Math.max( ...lyrics.map(e => Math.max( ...e.map(e2 => e2.word.length ))) ) - 1 ? wordLengthLimit = Math.max( ...lyrics.map(e => Math.max( ...e.map(e2 => e2.word.length ))) ) - 1 : e.target.value < 0 || isNaN(parseFloat(e.target.value)) ? wordLengthLimit = 0 : {}"
                         >
                     </label>
-                
-                    <label class="flex flex-col items-center">
-                        <h2 class="font-bold text-xl mt-4 mb-2">Autospace:</h2>
-                        <input 
-                            class="cursor-pointer"
-                            type="checkbox"
-                            v-model="autospace"
-                        >
-                    </label>
-                
-                    <label class="flex flex-col items-center">
-                        <h2 class="font-bold text-xl mt-4 mb-2">Free verse changing:</h2>
-                        <input 
-                            class="cursor-pointer"
-                            type="checkbox"
-                            v-model="freeVerseChanging"
-                        >
-                    </label>
+
+                    <Switch
+                        :initialValue="autospace"
+                        :inputTabindex="tabindex"
+                        labelText="Autospace"
+                        @valueChanged="(newValue) => autospace = newValue"
+                    />
+
+                    <Switch
+                        :initialValue="freeVerseChanging"
+                        :inputTabindex="tabindex"
+                        labelText="Free verse changing"
+                        @valueChanged="(newValue) => freeVerseChanging = newValue"
+                    />
                 
                     <button
-                        class="button mt-6"
+                        class="button mt-4"
                         :tabindex="tabindex"
                         @click="lastSave != JSON.stringify({ ...exportData(false), id: '' }) ? quitWarningVisible = true : quit()"
                     >Quit to main menu</button>
@@ -1326,11 +1345,17 @@
                     </button>
 
                     <button
-                        class="rounded-xl bg-(--color) px-2 cursor-pointer font-bold hover:scale-[1.05] duration-100"
+                        class="rounded-xl bg-(--color) px-1.5 cursor-pointer hover:scale-[1.05] duration-100 h-full"
                         title="Remove verse."
                         :tabindex="tabindex"
                         @click="removedVerse = verseId"
-                    >X</button>
+                    >
+                        <img 
+                            :class="verseId % 2 == 0 ? 'w-3' : 'w-3 brightness-0'"
+                            src="@/assets/cross.png" 
+                            alt="Remove icon"
+                        >
+                    </button>
                 </div>
             </div>
 
@@ -1397,11 +1422,17 @@
                 >
 
                 <button
-                    class="rounded-xl bg-(--color) px-2 cursor-pointer font-bold hover:scale-[1.05] duration-100"
+                    class="rounded-xl bg-(--color) px-1.5 cursor-pointer font-bold hover:scale-[1.05] duration-100"
                     title="Remove filters."
                     :tabindex="tabindex"
                     @click="backgroundFilters = backgroundFilters.filter((e, idx2) => idx != idx2)"
-                >X</button>
+                >
+                    <img 
+                        :class="idx % 2 == 0 ? 'w-3' : 'w-3 brightness-0'"
+                        src="@/assets/cross.png" 
+                        alt="Remove icon"
+                    >
+                </button>
             </div>
 
             <button
