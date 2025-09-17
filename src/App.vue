@@ -110,7 +110,10 @@
             alt="Background"
         >
 
-        <MenuPanel v-if="!loadError">
+        <MenuPanel 
+            v-if="!loadError"
+            animationVariant="noAnimation"
+        >
             <PinkHeader text="Loading game..." />
             <p>Downloading a {{ Math.round(assetData[loadedAssets.length].size / 10) / 100 }}MB file...</p>
             <p class="mt-0.5">{{ Math.round((assetData.slice(0, loadedAssets.length).reduce((sum, e) => sum + e.size, 0) + 432) / 10) / 100 }}MB / {{ Math.round((assetData.reduce((sum, e) => sum + e.size, 0) + 432) / 10) / 100 }}MB</p>
@@ -125,7 +128,10 @@
             </div>
         </MenuPanel>
 
-        <MenuPanel v-else>
+        <MenuPanel 
+            v-else
+            animationVariant="withoutBackground"
+        >
             <PinkHeader text="Failed to load the game" />
             <p>{{ loadError }}</p>
             <button 

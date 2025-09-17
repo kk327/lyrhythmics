@@ -69,6 +69,7 @@
     const mobileWarningEditData = ref({});
     const selectedMapData = ref({});
     let mapDownloadAbortController = new AbortController();
+    const dontAnimateTheBackground = ref(false);
 
     const sizeRefresh = ref(false);
     const time = ref(0);
@@ -294,7 +295,7 @@
                                     startTime: 0,
                                     speed: 1 };
                 } catch {
-                    fileLoadError.value = { type: type, message: "The file is damaged." };
+                    fileLoadError.value = { type: type, fromFile: true, message: "The file is damaged." };
                     return;
                 }
 
@@ -302,7 +303,7 @@
                 for (let key of requiredKeys) {
                     if (!(key in dataTemp)) {
                         hasAllKeys = false;
-                        fileLoadError.value = { type: type, message: "The file doesn't have the required keys." };
+                        fileLoadError.value = { type: type, fromFile: true, message: "The file doesn't have the required keys." };
                         break;
                     }
                 }
@@ -320,7 +321,7 @@
             if (e.target.files[0].name.match(/\.json$/)) {
                 reader.readAsText(e.target.files[0]);
             } else {
-                fileLoadError.value = { type: type, message: "This is not a JSON file." };
+                fileLoadError.value = { type: type, fromFile: true, message: "This is not a JSON file." };
             }
         })
     }
@@ -357,7 +358,7 @@
         if (e.key == "Escape" && menu.value == "songList" && Object.keys(selectedMapData.value).length == 0 && !visibleOverlay.value && !Object.keys(fileLoadError.value).length) {
             menu.value = "main";
             song.value.pause();
-        } else if ((e.key == "Escape" || e.key == "Enter") && visibleOverlay.value != "automap" && !(visibleOverlay.value == "settings" && e.key == "Enter") && customCSSTextarea.value != document.activeElement) {
+        } else if ((e.key == "Escape" || e.key == "Enter") && visibleOverlay.value != "automap" && !(visibleOverlay.value.match(/settings|loadingMap/) && e.key == "Enter") && customCSSTextarea.value != document.activeElement) {
             if (!resetWarning.value && !Object.keys(fileLoadError.value).length) {
                 if (visibleOverlay.value == "loadingMap") {
                     mapDownloadAbortController.abort();
@@ -396,6 +397,7 @@
     async function downloadMap(codeName) {
         stopSongSample();
         document.activeElement.blur();
+        dontAnimateTheBackground.value = false;
 
         if (Object.keys(preloadedMaps).length) {
             selectedMapData.value = preloadedMaps[codeName];
@@ -403,6 +405,7 @@
             if (props.cachedMaps[codeName]) {
                 selectedMapData.value = props.cachedMaps[codeName];
             } else {
+                dontAnimateTheBackground.value = true;
                 visibleOverlay.value = "loadingMap";
                 const signal = mapDownloadAbortController.signal;
                 forceDefaultBackground.value = false;
@@ -673,6 +676,7 @@
         v-if="Object.keys(selectedMapData).length != 0"
         :data="selectedMapData"
         :defaultBackground="defaultBackground"
+        :dontAnimateTheBackground="dontAnimateTheBackground"
         @setData="(data) => $emit('setData', data)"
         @cancel="selectedMapData = {}"
         @showMobileWarning="(data) => mobileWarningEditData = data"
@@ -1087,7 +1091,8 @@
 
     <MenuPanel 
         v-if="Object.keys(fileLoadError).length"
-        :higherZ="true"
+        :higherZ="fileLoadError.type == 'theme'"
+        :animationVariant="fileLoadError.fromFile ? '' : 'withoutBackground'"
     >
         <PinkHeader :text="'Failed to load the ' + fileLoadError.type" />
         <p>{{ fileLoadError.message }}</p>

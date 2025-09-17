@@ -6,7 +6,8 @@
         "closeButton",
         "closeButtonTabindex",
         "reduceTransparency",
-        "higherZ"
+        "higherZ",
+        "animationVariant"
     ]);
 
     const emit = defineEmits([
@@ -14,7 +15,7 @@
     ]);
 
     onMounted(() => {
-        if (!props.higherZ) {
+        if (!props.higherZ && props.animationVariant != "noAnimation") {
             for (let element of document.querySelectorAll(".animated")) {
                 element.animate(
                     [
@@ -29,7 +30,8 @@
 </script>
 
 <template> 
-    <div :class="higherZ ? 'animated fixed w-screen h-dvh bg-black/50 backdrop-blur-xs z-12' : 'animated fixed w-screen h-dvh bg-black/50 backdrop-blur-xs z-10'"></div>
+    <div :class="(animationVariant == 'withoutBackground' ? '' : 'animated ') + 
+                 (higherZ ? 'fixed w-screen h-dvh bg-black/50 backdrop-blur-xs z-12' : 'fixed w-screen h-dvh bg-black/50 backdrop-blur-xs z-10')"></div>
     <div :class="higherZ ? 'fixed w-screen h-dvh flex justify-center items-center text-white text-center z-13' : 'fixed w-screen h-dvh flex justify-center items-center text-white text-center z-11'">
         <div class="flex bg-neutral-900/[var(--bg-40)] sm:rounded-xl h-dvh w-full sm:h-auto sm:w-auto sm:max-h-[calc(100dvh-20px)] sm:max-w-[calc(100%-20px)]">
             <button

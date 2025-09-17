@@ -12,7 +12,8 @@
         "data",
         "defaultBackground",
         "pausedVariant",
-        "continuedWithSettings"
+        "continuedWithSettings",
+        "dontAnimateTheBackground"
     ]);
 
     const emit = defineEmits([
@@ -191,7 +192,7 @@
 </script>
 
 <template>
-    <MenuPanel>
+    <MenuPanel :animationVariant="dontAnimateTheBackground ? 'withoutBackground' : ''">
         <h1
             v-if="pausedVariant"
             class="font-bold text-2xl mb-2 tracking-wider relative bottom-0.75"

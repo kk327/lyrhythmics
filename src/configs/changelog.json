@@ -1,5 +1,16 @@
 { 
     "releases": [{
+        "version": "1.7.1",
+        "date": "September 17th, 2025",
+        "changes": [
+                "The lyrics customization options are no longer centered individually.",
+                "You can no longer press enter to cancel downloading a map.",
+                "The loading game menu now appears instantly without the smooth appearing animation.",
+                "The failed to load the map error menu now appears smoothly.",
+                "Menus appearing right after another menu has disappeared no longer cause the screen-wide background to reappear with the animation."
+            ]
+        },
+        {
         "version": "1.7.0",
         "date": "September 15th, 2025",
         "changes": [
